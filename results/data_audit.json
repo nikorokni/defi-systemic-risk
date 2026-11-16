@@ -1,0 +1,130 @@
+{
+  "input_sha256": {
+    "aave_data.zip": "c452cb6634ab1c354e7da0daea00c621ccb87e43e406262ab815f48c1d9aa3b0",
+    "eth_blocks_data.zip": "5f17f96383db507cc5d2d25c80b4544bbf17589bbb472e553651ff838838fb32",
+    "dexposure_mapping.json": "199f647747ec5ab7ae684d26463106c3de33d9e287aae74c808df6996943af54",
+    "dexposure.json": "aa330bbb8fbf99719fc85d49625d7df7bd68f2b042f5806ded080cec99bad3f8",
+    "aave-v2-llama.json": "83cbb6fafa5e110b74f3c9073956e4ee2d0bf97bb784d7d942245be01ee97e04",
+    "aave-v3-llama.json": "96dac14e454f0b913b00aed321aedead94f62e363eeac359ed327a4676b30f8c"
+  },
+  "liquidations": {
+    "v2": {
+      "event_rows_in_release": 50485,
+      "event_rows_in_issue_dates": 13654,
+      "first_event": "2020-12-17 14:19:27+00:00",
+      "last_event": "2026-11-15 00:48:35+00:00",
+      "distinct_utc_hours_checked": 22656,
+      "count_mismatch_hours": 0,
+      "usd_mismatch_hours": 0,
+      "zero_usd_rows_in_release": 9,
+      "liquidated_usd_in_issue_dates": 194723432.11569637
+    },
+    "v3": {
+      "event_rows_in_release": 25972,
+      "event_rows_in_issue_dates": 13239,
+      "first_event": "2023-01-30 19:11:47+00:00",
+      "last_event": "2026-11-15 01:46:11+00:00",
+      "distinct_utc_hours_checked": 22656,
+      "count_mismatch_hours": 0,
+      "usd_mismatch_hours": 0,
+      "zero_usd_rows_in_release": 2,
+      "liquidated_usd_in_issue_dates": 1016689904.7286335
+    }
+  },
+  "reserves": {
+    "v2": {
+      "dai": {
+        "rows": 52168,
+        "first": "2020-12-01 14:22:02+00:00",
+        "last": "2026-11-14 17:59:47+00:00",
+        "missing_issue_inputs": 7
+      },
+      "usdc": {
+        "rows": 52185,
+        "first": "2020-12-01 14:23:56+00:00",
+        "last": "2026-11-15 00:48:35+00:00",
+        "missing_issue_inputs": 7
+      },
+      "usdt": {
+        "rows": 52144,
+        "first": "2020-11-30 22:20:30+00:00",
+        "last": "2026-11-14 02:29:59+00:00",
+        "missing_issue_inputs": 7
+      },
+      "weth": {
+        "rows": 52185,
+        "first": "2020-11-30 22:20:30+00:00",
+        "last": "2026-11-14 22:49:47+00:00",
+        "missing_issue_inputs": 7
+      }
+    },
+    "v3": {
+      "dai": {
+        "rows": 33307,
+        "first": "2023-01-27 07:57:59+00:00",
+        "last": "2026-11-15 01:53:59+00:00",
+        "missing_issue_inputs": 0
+      },
+      "usdc": {
+        "rows": 33307,
+        "first": "2023-01-27 07:57:11+00:00",
+        "last": "2026-11-15 01:59:59+00:00",
+        "missing_issue_inputs": 0
+      },
+      "usdt": {
+        "rows": 32893,
+        "first": "2023-02-13 13:52:23+00:00",
+        "last": "2026-11-15 01:59:47+00:00",
+        "missing_issue_inputs": 8
+      },
+      "weth": {
+        "rows": 33307,
+        "first": "2023-01-27 07:55:11+00:00",
+        "last": "2026-11-15 01:59:47+00:00",
+        "missing_issue_inputs": 0
+      }
+    }
+  },
+  "oracle": {
+    "eth": {
+      "valid_updates_in_release": 225096,
+      "excluded_invalid_updates_outside_window": 4,
+      "first": "2020-08-06 23:16:56+00:00",
+      "last": "2026-11-15 02:17:47+00:00"
+    },
+    "btc": {
+      "valid_updates_in_release": 157364,
+      "excluded_invalid_updates_outside_window": 0,
+      "first": "2020-08-06 23:16:35+00:00",
+      "last": "2026-11-15 02:19:35+00:00"
+    }
+  },
+  "analysis_rows": 1816,
+  "graph": {
+    "full_snapshot_count": 283,
+    "first": "2020-03-23 00:00:00+00:00",
+    "last": "2025-08-18 00:00:00+00:00",
+    "retained_weeks": 136,
+    "ego_edges_by_version": {
+      "v2": 3436,
+      "v3": 4109
+    },
+    "graph_node_mapping": {
+      "v2": {
+        "id": "111",
+        "name": "AAVE V2"
+      },
+      "v3": {
+        "id": "1599",
+        "name": "AAVE V3"
+      }
+    }
+  },
+  "derived_sha256": {
+    "graph_edges.parquet": "c2c1f8d264756b42e7117ae531401696461cc727eae70564c0a56f042969337f",
+    "graph_nodes.parquet": "6f539bacfb80f05232cbbbbb603f4586a19003aa82289254aa6572b7cbf5c69e",
+    "panel.parquet": "b0aac0918d1acdc5a685386b1b0fb1a7ac4a4c565ea90939ecdbdaee89cb8b47",
+    "v2_liquidation_times.parquet": "641bffc9d78149b4909bd37324cdfef8e836b1e3554016083fa81fee63c6de55",
+    "v3_liquidation_times.parquet": "3e53388357576f6cf9483901dcf119f6d6ffa494c2e41235ba545db233aa9fe6"
+  }
+}

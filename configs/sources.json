@@ -1,0 +1,38 @@
+{
+  "zenodo": {
+    "doi": "10.5281/zenodo.24245638",
+    "licence": "CC BY 4.0",
+    "receiver": "data/AAVE/liquidations and data/ETH_blocks/Chainlink"
+  },
+  "dexposure": {
+    "commit": "79071f26ddb3cf59adb433fb277bc820732bf863",
+    "graph_level": "global protocol version",
+    "snapshot_path": "data/historical-network_week_2020-03-30.json"
+  },
+  "files": {
+    "aave_data.zip": {
+      "url": "https://zenodo.org/records/24245638/files/aave_data.zip?download=1",
+      "sha256": "c452cb6634ab1c354e7da0daea00c621ccb87e43e406262ab815f48c1d9aa3b0"
+    },
+    "eth_blocks_data.zip": {
+      "url": "https://zenodo.org/records/24245638/files/eth_blocks_data.zip?download=1",
+      "sha256": "5f17f96383db507cc5d2d25c80b4544bbf17589bbb472e553651ff838838fb32"
+    },
+    "dexposure_mapping.json": {
+      "url": "https://raw.githubusercontent.com/dthinkr/DeXposure/79071f26ddb3cf59adb433fb277bc820732bf863/data/mapping/id_to_info.json",
+      "sha256": "199f647747ec5ab7ae684d26463106c3de33d9e287aae74c808df6996943af54"
+    },
+    "dexposure.json": {
+      "url": "https://media.githubusercontent.com/media/dthinkr/DeXposure/79071f26ddb3cf59adb433fb277bc820732bf863/data/historical-network_week_2020-03-30.json",
+      "sha256": "aa330bbb8fbf99719fc85d49625d7df7bd68f2b042f5806ded080cec99bad3f8"
+    },
+    "aave-v2-llama.json": {
+      "url": "https://api.llama.fi/protocol/aave-v2",
+      "reference_sha256": "83cbb6fafa5e110b74f3c9073956e4ee2d0bf97bb784d7d942245be01ee97e04"
+    },
+    "aave-v3-llama.json": {
+      "url": "https://api.llama.fi/protocol/aave-v3",
+      "reference_sha256": "96dac14e454f0b913b00aed321aedead94f62e363eeac359ed327a4676b30f8c"
+    }
+  }
+}

@@ -1,0 +1,291 @@
+{
+  "target": "usd",
+  "horizon_hours": 24,
+  "static_graph_anchor": "2023-01-30T00:00:00+00:00",
+  "software": {
+    "numpy": "2.3.5",
+    "pandas": "2.2.3",
+    "pyarrow": "21.0.0",
+    "scikit-learn": "1.8.0",
+    "torch": "2.7.1+cpu",
+    "lightgbm": "4.6.0",
+    "scipy": "1.17.0"
+  },
+  "python": "3.12.14",
+  "folds": {
+    "A": {
+      "cutoff": {
+        "v2": 492541.5233330743,
+        "v3": 106089.20698047618
+      },
+      "train": {
+        "first": "2023-03-01",
+        "last": "2023-12-30",
+        "rows": 610,
+        "positives": 32,
+        "positives_by_version": {
+          "v2": 16,
+          "v3": 16
+        }
+      },
+      "tune": {
+        "first": "2024-01-01",
+        "last": "2024-02-13",
+        "rows": 88,
+        "positives": 13,
+        "positives_by_version": {
+          "v2": 2,
+          "v3": 11
+        }
+      },
+      "calibrate": {
+        "first": "2024-02-15",
+        "last": "2024-03-30",
+        "rows": 90,
+        "positives": 14,
+        "positives_by_version": {
+          "v2": 1,
+          "v3": 13
+        }
+      },
+      "test": {
+        "first": "2024-04-01",
+        "last": "2024-07-31",
+        "rows": 244,
+        "positives": 33,
+        "positives_by_version": {
+          "v2": 9,
+          "v3": 24
+        }
+      },
+      "selected_epochs": {
+        "gru": [
+          4,
+          4,
+          4,
+          3,
+          4
+        ],
+        "graph": [
+          4,
+          5,
+          4,
+          4,
+          4
+        ],
+        "static_graph": [
+          3,
+          5,
+          4,
+          4,
+          4
+        ],
+        "graph_local": [
+          4,
+          5,
+          3,
+          4,
+          4
+        ],
+        "graph_no_sequence": [
+          7,
+          8,
+          7,
+          8,
+          6
+        ],
+        "robust_graph": [
+          4,
+          5,
+          4,
+          4,
+          4
+        ]
+      }
+    },
+    "B": {
+      "cutoff": {
+        "v2": 617043.0200658441,
+        "v3": 416211.1499411967
+      },
+      "train": {
+        "first": "2023-03-01",
+        "last": "2024-04-29",
+        "rows": 852,
+        "positives": 44,
+        "positives_by_version": {
+          "v2": 22,
+          "v3": 22
+        }
+      },
+      "tune": {
+        "first": "2024-05-01",
+        "last": "2024-06-14",
+        "rows": 90,
+        "positives": 6,
+        "positives_by_version": {
+          "v2": 2,
+          "v3": 4
+        }
+      },
+      "calibrate": {
+        "first": "2024-06-16",
+        "last": "2024-07-30",
+        "rows": 90,
+        "positives": 8,
+        "positives_by_version": {
+          "v2": 2,
+          "v3": 6
+        }
+      },
+      "test": {
+        "first": "2024-08-01",
+        "last": "2024-12-31",
+        "rows": 306,
+        "positives": 24,
+        "positives_by_version": {
+          "v2": 5,
+          "v3": 19
+        }
+      },
+      "selected_epochs": {
+        "gru": [
+          25,
+          30,
+          24,
+          20,
+          34
+        ],
+        "graph": [
+          17,
+          30,
+          23,
+          23,
+          14
+        ],
+        "static_graph": [
+          23,
+          35,
+          24,
+          27,
+          30
+        ],
+        "graph_local": [
+          18,
+          15,
+          20,
+          23,
+          14
+        ],
+        "graph_no_sequence": [
+          20,
+          17,
+          12,
+          22,
+          14
+        ],
+        "robust_graph": [
+          18,
+          30,
+          30,
+          23,
+          18
+        ]
+      }
+    },
+    "C": {
+      "cutoff": {
+        "v2": 670193.3881419194,
+        "v3": 815121.2580092712
+      },
+      "train": {
+        "first": "2023-03-01",
+        "last": "2024-09-29",
+        "rows": 1158,
+        "positives": 58,
+        "positives_by_version": {
+          "v2": 29,
+          "v3": 29
+        }
+      },
+      "tune": {
+        "first": "2024-10-01",
+        "last": "2024-11-14",
+        "rows": 90,
+        "positives": 2,
+        "positives_by_version": {
+          "v2": 0,
+          "v3": 2
+        }
+      },
+      "calibrate": {
+        "first": "2024-11-16",
+        "last": "2024-12-30",
+        "rows": 90,
+        "positives": 7,
+        "positives_by_version": {
+          "v2": 0,
+          "v3": 7
+        }
+      },
+      "test": {
+        "first": "2025-01-01",
+        "last": "2025-08-24",
+        "rows": 472,
+        "positives": 53,
+        "positives_by_version": {
+          "v2": 11,
+          "v3": 42
+        }
+      },
+      "selected_epochs": {
+        "gru": [
+          21,
+          20,
+          22,
+          16,
+          36
+        ],
+        "graph": [
+          35,
+          35,
+          36,
+          36,
+          34
+        ],
+        "static_graph": [
+          18,
+          24,
+          23,
+          14,
+          20
+        ],
+        "graph_local": [
+          6,
+          11,
+          15,
+          16,
+          5
+        ],
+        "graph_no_sequence": [
+          18,
+          16,
+          36,
+          12,
+          34
+        ],
+        "robust_graph": [
+          31,
+          32,
+          15,
+          36,
+          34
+        ]
+      }
+    }
+  },
+  "observed_directed_share": {
+    "v2": 0,
+    "v3": 0
+  }
+}

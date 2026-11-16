@@ -1,0 +1,207 @@
+{
+  "target": "borrowing_scaled",
+  "horizon_hours": 24,
+  "static_graph_anchor": "2023-01-30T00:00:00+00:00",
+  "software": {
+    "numpy": "2.3.5",
+    "pandas": "2.2.3",
+    "pyarrow": "21.0.0",
+    "scikit-learn": "1.8.0",
+    "torch": "2.7.1+cpu",
+    "lightgbm": "4.6.0",
+    "scipy": "1.17.0"
+  },
+  "python": "3.12.14",
+  "folds": {
+    "A": {
+      "cutoff": {
+        "v2": 0.00029295355173169493,
+        "v3": 0.0001509838413093708
+      },
+      "train": {
+        "first": "2023-03-01",
+        "last": "2023-12-30",
+        "rows": 610,
+        "positives": 32,
+        "positives_by_version": {
+          "v2": 16,
+          "v3": 16
+        }
+      },
+      "tune": {
+        "first": "2024-01-01",
+        "last": "2024-02-13",
+        "rows": 88,
+        "positives": 8,
+        "positives_by_version": {
+          "v2": 2,
+          "v3": 6
+        }
+      },
+      "calibrate": {
+        "first": "2024-02-15",
+        "last": "2024-03-30",
+        "rows": 90,
+        "positives": 7,
+        "positives_by_version": {
+          "v2": 3,
+          "v3": 4
+        }
+      },
+      "test": {
+        "first": "2024-04-01",
+        "last": "2024-07-31",
+        "rows": 244,
+        "positives": 25,
+        "positives_by_version": {
+          "v2": 11,
+          "v3": 14
+        }
+      },
+      "selected_epochs": {
+        "gru": [
+          5,
+          6,
+          5,
+          4,
+          6
+        ],
+        "graph": [
+          5,
+          7,
+          5,
+          6,
+          5
+        ]
+      }
+    },
+    "B": {
+      "cutoff": {
+        "v2": 0.0003871622338397815,
+        "v3": 0.00028311353216097684
+      },
+      "train": {
+        "first": "2023-03-01",
+        "last": "2024-04-29",
+        "rows": 852,
+        "positives": 44,
+        "positives_by_version": {
+          "v2": 22,
+          "v3": 22
+        }
+      },
+      "tune": {
+        "first": "2024-05-01",
+        "last": "2024-06-14",
+        "rows": 90,
+        "positives": 7,
+        "positives_by_version": {
+          "v2": 4,
+          "v3": 3
+        }
+      },
+      "calibrate": {
+        "first": "2024-06-16",
+        "last": "2024-07-30",
+        "rows": 90,
+        "positives": 7,
+        "positives_by_version": {
+          "v2": 2,
+          "v3": 5
+        }
+      },
+      "test": {
+        "first": "2024-08-01",
+        "last": "2024-12-31",
+        "rows": 306,
+        "positives": 21,
+        "positives_by_version": {
+          "v2": 9,
+          "v3": 12
+        }
+      },
+      "selected_epochs": {
+        "gru": [
+          35,
+          30,
+          31,
+          20,
+          32
+        ],
+        "graph": [
+          30,
+          30,
+          20,
+          25,
+          19
+        ]
+      }
+    },
+    "C": {
+      "cutoff": {
+        "v2": 0.0004945251342907793,
+        "v3": 0.0003821800329935038
+      },
+      "train": {
+        "first": "2023-03-01",
+        "last": "2024-09-29",
+        "rows": 1158,
+        "positives": 58,
+        "positives_by_version": {
+          "v2": 29,
+          "v3": 29
+        }
+      },
+      "tune": {
+        "first": "2024-10-01",
+        "last": "2024-11-14",
+        "rows": 90,
+        "positives": 1,
+        "positives_by_version": {
+          "v2": 1,
+          "v3": 0
+        }
+      },
+      "calibrate": {
+        "first": "2024-11-16",
+        "last": "2024-12-30",
+        "rows": 90,
+        "positives": 2,
+        "positives_by_version": {
+          "v2": 0,
+          "v3": 2
+        }
+      },
+      "test": {
+        "first": "2025-01-01",
+        "last": "2025-08-24",
+        "rows": 472,
+        "positives": 48,
+        "positives_by_version": {
+          "v2": 33,
+          "v3": 15
+        }
+      },
+      "selected_epochs": {
+        "gru": [
+          35,
+          36,
+          36,
+          34,
+          36
+        ],
+        "graph": [
+          35,
+          36,
+          36,
+          36,
+          36
+        ]
+      }
+    }
+  },
+  "observed_directed_share": {
+    "v2": 0,
+    "v3": 0
+  }
+}
