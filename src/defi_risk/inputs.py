@@ -69,8 +69,8 @@ class ForecastInputs:
         result = self.snapshots.take(row).to_series(index=self.days)
         return result.mask(row < 0, pd.NaT)
 
-    def arrays(self, scenario=CLEAN, static=False):
-        key = (scenario, static)
+    def arrays(self, scenario=CLEAN, static=False, mask_seed=None):
+        key = (scenario, static, mask_seed)
         if key in self.cache:
             return self.cache[key]
         prob, oracle_lag, graph_delay = SCENARIOS[scenario]
@@ -81,7 +81,7 @@ class ForecastInputs:
         peers = np.zeros((*shape, 3), dtype=np.float32)
         context = np.full((len(self.panel), 2), np.nan, dtype=np.float32)
         masks = {}
-        rng = np.random.default_rng(3107 if scenario == "augmentation" else 2048)
+        rng = np.random.default_rng(mask_seed if mask_seed is not None else (3107 if scenario == "augmentation" else 2048))
         for d, (origin, date) in enumerate(selected.items()):
             if pd.isna(date):
                 continue
