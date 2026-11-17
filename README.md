@@ -165,7 +165,7 @@ python -m defi_risk.edge_monte_carlo --processed data/processed --repetitions 10
 python -m defi_risk.fusion --ledger results/primary/predictions.csv.gz --out results/fusion
 ```
 
-**External data and Health Factor audit.** Candidate independent protocol data and requirements for reconstructing historical Aave account risk are documented in [the validation protocol](paper/external_validation_protocol.md). The strict validators can check a *supplied* independent event table or health-factor cross-check; they cannot supply those records themselves.
+**Learned chronological reliability gate.** A/B held-out forecasts train a four-parameter regularised mixture gate; only later fold C is used for its evaluation. This is still exploratory because the hypothesis was formulated after the original results were seen.\n\n```bash\npython -m defi_risk.chronological_gate --ledger results/primary/predictions.csv.gz\n```\n\n**External data and Health Factor audit.** Candidate independent protocol data and requirements for reconstructing historical Aave account risk are documented in [the validation protocol](paper/external_validation_protocol.md). The strict validators can check a *supplied* independent event table or health-factor cross-check; they cannot supply those records themselves.
 
 ```bash
 python -m defi_risk.external_audit events /path/to/independent_liquidations.parquet --output results/external_audit.json
