@@ -148,3 +148,28 @@ cp build/main.pdf paper/manuscript.pdf
 | [figures/](figures/) | Reproducible charts with matching PDF and PNG versions |
 
 For research citations, use the full manuscript title and the commit used. Upstream attribution and licence information are in the [bibliography](paper/references.bib) and [data provenance](data/README.md). [Journal targeting and submission notes](paper/submission_notes.md)
+
+## Research extensions — implementation status (17 November 2026)
+
+The following analyses are **not** included in the published manuscript's original empirical results. New model scores must not be asserted until these commands are executed on the pinned source archives.
+
+**Independent-seed edge-thinning experiment.** The original deterministic mask remains unchanged for reproducibility; the new command retrains the graph ensemble per chronological fold, then compares 100 independent thinning masks for each corruption rate. It saves every held-out forecast, seed-specific AP and Brier score, and variation across masks.
+
+```bash
+python -m defi_risk.edge_monte_carlo --processed data/processed --repetitions 100
+```
+
+**Exploratory graph/local fusion.** This analysis pairs existing held-out Graph+Platt and GRU+Platt predictions by date, fold and Aave version. The fixed 50% mixture is compared to a *predeclared heuristic* that reduces graph weight as calibration-based ensemble disagreement increases. This is not a trained neural gating network and is **not** an independently pre-registered new test: the ledger was previously inspected. Do not call it a demonstrated novel method without a fresh out-of-sample evaluation.
+
+```bash
+python -m defi_risk.fusion --ledger results/primary/predictions.csv.gz --out results/fusion
+```
+
+**External data and Health Factor audit.** Candidate independent protocol data and requirements for reconstructing historical Aave account risk are documented in [the validation protocol](paper/external_validation_protocol.md). The strict validators can check a *supplied* independent event table or health-factor cross-check; they cannot supply those records themselves.
+
+```bash
+python -m defi_risk.external_audit events /path/to/independent_liquidations.parquet --output results/external_audit.json
+python -m defi_risk.external_audit health /path/to/historical_health_factors.parquet --output results/health_audit.json
+```
+
+The source validity and publication status of the [adaptive-governance research manuscript](https://github.com/nikorokni/local-currency-defi-adaptive-governance) are kept distinct from the present retrospective benchmark. No independent-protocol transfer or historical HF validation result is currently claimed. Any journal-submission declaration must follow the selected venue's policy.
