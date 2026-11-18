@@ -54,7 +54,7 @@ def build():
     replacements["MASK_RESULTS"]=table(["Removal","Mean AP change","AP worse / 100","Mean Brier change","Brier worse / 100"],
         [[r.scenario.replace("thin_","")+"%",f"{r.mean_ap_delta:+.5f}",round(r.fraction_ap_worse*100),f"{r.mean_brier_delta:+.6f}",round(r.fraction_brier_worse*100)] for r in d.itertuples()],
         "100 mask draws per rate. All changes are paired with the same fitted clean graph.")
-    alerts=pd.read_csv(ROOT/"revision/inputs/Aave_Results_For_Review/results/alerts.csv")
+    alerts=pd.read_csv(ROOT/"revision/results/alerts_source.csv")
     rows=[]
     for m,policy,label in [("graph_platt","alert","Graph"),("graph_platt","alert_with_review","Graph + review"),("gru","alert","GRU")]:
         q=alerts[(alerts.model==m)&(alerts.scenario=="clean")&(alerts.policy==policy)].iloc[0]
