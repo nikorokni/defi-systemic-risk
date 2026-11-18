@@ -1,0 +1,17 @@
+{
+  "selected_penalty": 0.1,
+  "theta": [
+    -1.4895193584837982,
+    -0.17678972726988773,
+    0.21031887167204755,
+    0.23455950959347138
+  ],
+  "selection_fold": "B",
+  "meta_training_folds": [
+    "A",
+    "B"
+  ],
+  "evaluation_fold": "C",
+  "hypothesis_status": "exploratory: all original test outcomes were inspected before this revision",
+  "fresh_independent_test": false
+}
