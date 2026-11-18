@@ -95,6 +95,7 @@ def build():
          ["Representative historical HF","Not completed","Selected old sample is insufficient"],
          ["Network beyond HF comparison","Not executed","Requires validated borrower-health panel"]],
         "Completed analyses and unresolved scientific requirements at this revision.")
+    subprocess.run([sys.executable,"revision/scripts/decision_utility.py","--reps","2000"],cwd=ROOT,check=True)
     util=pd.read_csv(R/"decision_utility/cost_sensitivity.csv")
     selected=[]
     for cohort,models in [("original_2024_2025",["gru","graph_platt"]),("later_2025_2026",["gru","learned_gate"])]:
