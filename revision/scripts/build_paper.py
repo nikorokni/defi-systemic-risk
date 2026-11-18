@@ -95,6 +95,25 @@ def build():
          ["Representative historical HF","Not completed","Selected old sample is insufficient"],
          ["Network beyond HF comparison","Not executed","Requires validated borrower-health panel"]],
         "Completed analyses and unresolved scientific requirements at this revision.")
+    util=pd.read_csv(R/"decision_utility/cost_sensitivity.csv")
+    selected=[]
+    for cohort,models in [("original_2024_2025",["gru","graph_platt"]),("later_2025_2026",["gru","learned_gate"])]:
+        for ratio in [5,20]:
+            for m in models:
+                q=util[(util.cohort==cohort)&(util.model==m)&(util.c_fn_over_c_fp==ratio)].iloc[0]
+                selected.append(["Original" if cohort.startswith("original") else "Later",m.replace("graph_platt","Graph"),ratio,
+                                 f"{int(q.false_alerts)}/{int(q.missed_positives)}",f"{q.cost_per_1000:.1f}"])
+    replacements["DECISION_RESULTS"]=table(["Cohort","Model","Cost ratio","False alerts / missed days","Cost per 1,000"],selected,
+        "Frozen forecast decisions, FP cost 1 and hypothetical missed-positive-day cost 5 or 20. Not actual monetary loss.")
+    comparison=pd.read_csv(R/"decision_utility/paired_cost_intervals.csv")
+    rows=[]
+    for cohort,a in [("original_2024_2025","graph_platt"),("later_2025_2026","learned_gate")]:
+        for ratio in [5,20]:
+            q=comparison[(comparison.cohort==cohort)&(comparison.model_a==a)&(comparison.c_fn_over_c_fp==ratio)].iloc[0]
+            rows.append(["Original graph - GRU" if cohort.startswith("original") else "Later gate - GRU",ratio,
+                f"{q.difference_cost_per_1000:+.1f} [{q.block_q025:+.1f}, {q.block_q975:+.1f}]"])
+    replacements["DECISION_INTERVALS"]=table(["Paired policy contrast","Cost ratio","Delta cost / 1,000 [2.5%, 97.5%]"],rows,
+        "Illustrative 2,000 draw 14-day date-block percentiles, conditional on fitted forecasts. Negative delta favours first model.")
     text=(ROOT/"revision/paper/manuscript.template.md").read_text()
     for key,value in replacements.items():
         text=text.replace("{{"+key+"}}",value)
