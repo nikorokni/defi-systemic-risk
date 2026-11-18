@@ -130,6 +130,10 @@ plus the same timed ETH/BTC inputs. The identity channel is constant zero. Graph
 
 Compound's 2023 q95 defines its target and unit normalisation. This use of target history is explicit: the experiment is source-weight transfer with target historical scaling, not zero information about the target. No Compound label fits the transferred weights or calibration. Separately trained Compound models provide supervised references under the same chronology. They are distinct estimators, not fine-tuned source models selected on target test scores. Paired comparisons use the same valid target dates. The original reserve-augmented checkpoints are not claimed to have been transferred.
 
+## Decision-utility sensitivity and scope
+
+To distinguish ranking from a concrete alert action, we evaluate a *hypothetical, unitless* binary decision loss. A false alert incurs cost $c_{FP}=1$, and failure to warn on an observed positive day incurs $c_{FN}=r$, for illustrative ratios $r\in\{2,5,10,20,50,100\}$. Under calibrated forecasts and these simplified time-independent actions, the analytical alert threshold is $p\ge 1/(1+r)$. No threshold is chosen using test outcomes, and these costs are not estimates of governance intervention costs. We report false-alert and missed-positive-day counts, plus cost per 1,000 origin-version forecasts. Date-block uncertainty intervals retain both Aave versions per sampled 14-day block and condition on the fitted predictions. This retrospective sensitivity is not a demonstrated real-world governance intervention, nor an episode-onset policy or successful human review simulation.
+
 ## Scores and uncertainty
 
 We compute AP, Brier, log loss and AUROC from paired ledgers. A moving-block bootstrap samples contiguous dates within each fold, carrying both Aave versions and both models together [@kunsch1989]. Main contrasts retain 2,000 valid 14-day draws; original graph/GRU comparisons also use seven-/28-day blocks. Percentile intervals condition on fitted forecasts and observed regimes, omit refitting uncertainty and are pointwise rather than simultaneous across all contrasts. Further ablations and transfer contrasts are exploratory. Failure to show a gain is not proof of equivalence.
@@ -199,6 +203,16 @@ Frozen-source predictions were actually generated. Both Compound versions have 1
 ![Executed transfer scores. Dashed lines give target test prevalence as an uninformative-ranking reference. Missing crisis neighbourhoods are excluded.](../revision/figures/transfer_performance.pdf){width=100%}
 
 On V3, source-minus-target AP differences are -0.0873 for GRU and -0.1051 for graph, with conditional intervals [-0.1758, -0.0239] and [-0.1929, -0.0316]. These exploratory results show that transfer was executed and failed to match supervised ranking in the filtered cohort. They do not establish chain-validated external performance, a crisis-inclusive benchmark or coverage of every Compound deployment.
+
+## Economic decision sensitivity for the observed labels
+
+The following decisions use the probability cutoff $1/(1+r)$ for illustrative ratios of missed-positive-day to false-alert cost of 5 or 20. Costs are **unitless**, not dollar losses.
+
+{{DECISION_RESULTS}}
+
+The original GRU incurs lower specified decision loss than the temporal graph for both illustrative ratios. On the later calendar, the learned gate changes very few decisions relative to GRU; its small sample improvement cannot establish effective governance or reliable superiority. Neither a higher ranking score nor disagreement-based gating guarantees a better operational trade-off. The loss is measured against realised liquidation volume, not historical Health Factor deterioration. Sensitivity across six ratios is exploratory, not an independently tested policy optimum.
+
+{{DECISION_INTERVALS}}
 
 # Historical account health and independent validation
 
