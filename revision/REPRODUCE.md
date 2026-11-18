@@ -56,3 +56,20 @@ The source compiles to a 16-page A4 PDF in an environment with Pandoc, XeLaTeX a
 ## Verification
 
 A recovered Work session reported 14 software tests passing with its pinned environment. In the current recovery container the full test suite cannot be independently rerun because `pyarrow`, `ijson` and `eth-hash` are unavailable. The revised LaTeX itself was rebuilt and checked as 16-page A4 with the Latin Modern fontconfig workaround. Tests or independent chain validation are **not** falsely described as newly passed.
+
+## 18 November 2026 extension: decision utility and historic block bounds
+
+The executed analysis of cost-sensitive alerts is described in
+[EXTENSION_STATUS_2026-11-18.md](EXTENSION_STATUS_2026-11-18.md).
+
+```bash
+python revision/scripts/decision_utility.py --reps 2000
+python -m unittest tests.test_decision_utility tests.test_chain_block_range -v
+python revision/scripts/build_paper.py
+```
+
+An authenticated archive RPC is still required to validate actual historic
+Compound logs and selected Aave account Health Factors. The new
+`revision/scripts/chain_block_range.py` can determine historic block bounds,
+but neither contract-log validation nor representative borrower-health analysis
+is completed simply by executing a script. Do not publish RPC credentials.
