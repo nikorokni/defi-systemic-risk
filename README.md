@@ -47,11 +47,12 @@ The audit commands use bundled forecast ledgers and do not retrain the original 
 python -m defi_risk fetch
 python -m defi_risk prepare
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python -m defi_risk evaluate --out revision/results/reproduction
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python revision/scripts/fetch_work_inputs.py
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python revision/scripts/transfer_experiment.py
 OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python revision/scripts/later_holdout.py
 python revision/scripts/make_figures.py
 python revision/scripts/make_review_report.py
-python paper/build_manuscript.py
+python revision/scripts/build_paper.py
 ```
 
 The paper builder requires Pandoc and working XeLaTeX/TeX Live or Tectonic. Scientific tables are generated from scored CSV files. The original `results/` folder is retained as a separate historical run; revised claims use `revision/results/` and the explicitly identified supplied ledger.
@@ -79,3 +80,5 @@ The older Cred sample contains no observations overlapping the primary study. No
 [Sources and verification record](revision/source_verification.csv) · [Submission requirements](paper/submission_notes.md) · [Companion governance research](https://github.com/nikorokni/local-currency-defi-adaptive-governance)
 
 The companion repository is a separate modelling project and does not independently validate these forecasts. Negative results and unresolved work are retained.
+
+**Recovery note (18 November 2026):** The revision source, PDF, numerical result bundles and model checkpoint archives were recovered from the prior Work deliverables. For precise input restoration and explicit incomplete tasks, read [revision/REPRODUCE.md](revision/REPRODUCE.md). The current GitHub checkout intentionally does not republish all third-party raw archives or the complete original Work input material.
