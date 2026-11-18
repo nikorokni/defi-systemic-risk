@@ -1,0 +1,19 @@
+{
+  "created_date": "2026-11-17",
+  "status": "analysis specification recorded before scoring the later holdout; not an external preregistration",
+  "test_start": "2025-08-25",
+  "test_stop_exclusive": "2026-09-01",
+  "data_quality_amendment_before_any_test_scoring": "First preparation failed on four negative ETH/USD source updates dated 15, 21 and 22 September 2026. The scored holdout is capped at the last complete preceding calendar month. September-November 2026 are quarantined. No later-holdout model scores were produced before this amendment.",
+  "training_start": "2023-03-01",
+  "development_start": "2025-05-01",
+  "label": "24-hour source-reported liquidation USD above version-specific training q95",
+  "base_models": ["market_augmented_gru", "temporal_graph"],
+  "seeds": [19, 43, 71, 101, 137],
+  "gate_penalty_selection": "Fit on original fold A predictions, select log-loss penalty from [0.1, 1, 10, 100] on B; refit on original A/B/C predictions before later holdout",
+  "comparators": ["graph", "gru", "fixed_half", "reliability_heuristic", "learned_gate", "freshness_capped_heuristic"],
+  "freshness_cap_rule": "Set heuristic graph weight to zero when latest graph snapshot exceeds 28 calendar days in age",
+  "bootstrap": "2000 paired moving blocks of 14 days, both Aave versions clustered by date",
+  "no_model_selection_on_later_test": true,
+  "graph_limit": "Pinned graph ends 18 August 2025; later holdout is a deliberately stale-graph regime. No new network observations are manufactured.",
+  "interpretation": "Previously unscored chronological test within the same Aave source, not prospective deployment or independent chain validation"
+}

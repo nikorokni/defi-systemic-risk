@@ -1,0 +1,42 @@
+{
+  "config": {
+    "versions": {
+      "v2": "111",
+      "v3": "1599",
+      "c2": "114",
+      "c3": "2088"
+    },
+    "history_days": 14,
+    "top_neighbours": 16,
+    "graph_lag_days": 7,
+    "hidden": 24,
+    "batch_size": 64,
+    "epochs": 36,
+    "patience": 7,
+    "learning_rate": 0.001,
+    "weight_decay": 0.001,
+    "seeds": [
+      19,
+      43,
+      71,
+      101,
+      137
+    ]
+  },
+  "python": "3.12.14",
+  "torch": "2.7.1+cpu",
+  "source_training": "2023-03-01 to 2023-12-30",
+  "source_tuning": "2024-01-01 to 2024-02-13",
+  "source_calibration": "2024-02-15 to 2024-03-30",
+  "test": "2024-04-01 to 2024-12-31",
+  "source_weights_frozen_for_target": true,
+  "original_reserve_models_transferred": false,
+  "target_history_use": "2023 quantile for unit scaling and stress label, plus pre-origin lagged inputs",
+  "target_labels_used_in_source_model_fitting": false,
+  "target_supervised_models_are_separate_reference": true,
+  "independent_onchain_validation_completed": false,
+  "daily_timestamp_semantics": "UTC assumed for publisher Date; not independently established",
+  "selection_caveat": "Publisher removed five dates; incomplete 14-day calendar histories excluded, including crisis neighbourhoods",
+  "hypothesis_status": "exploratory retrospective transfer",
+  "external_input_sha256": "5255b787ee3c298dfd6985a973baa50abec77ec2738782641f4ff43489d3d4c2"
+}

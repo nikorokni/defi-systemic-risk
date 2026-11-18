@@ -1,0 +1,16 @@
+{
+  "v2": {
+    "rows": 50485,
+    "hourly_coverage_start": "2023-02-06 00:00:00+00:00",
+    "hourly_coverage_stop": "2026-08-31 23:00:00+00:00",
+    "all_hourly_totals_match": true,
+    "last_event_utc": "2026-11-15 00:48:35+00:00"
+  },
+  "v3": {
+    "rows": 25972,
+    "hourly_coverage_start": "2023-02-06 00:00:00+00:00",
+    "hourly_coverage_stop": "2026-08-31 23:00:00+00:00",
+    "all_hourly_totals_match": true,
+    "last_event_utc": "2026-11-15 01:46:11+00:00"
+  }
+}

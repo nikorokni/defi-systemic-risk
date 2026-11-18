@@ -1,0 +1,33 @@
+{
+  "ledger_sha256": "c6333c6b0ede0f23ee77f74ad0e0dde307390af190503ae70689395973c157e2",
+  "github_ledger_sha256": "a665a5b0605e9fc5f3a3d46aef757e4be0207bf963dc80b4046b54c5b21d7809",
+  "forecast_rows": 48034,
+  "unique_clean_forecasts": 1022,
+  "positive_forecasts": 110,
+  "primary_metric_max_absolute_error": {
+    "ap": 8.326672684688674e-17,
+    "brier": 8.326672684688674e-17,
+    "logloss": 5.551115123125783e-17,
+    "auroc": 0.0
+  },
+  "attachment_github_label_mismatches": 0,
+  "attachment_github_probability_changes": 18011,
+  "compound_file_sha256": "5255b787ee3c298dfd6985a973baa50abec77ec2738782641f4ff43489d3d4c2",
+  "compound_date_column": "Date",
+  "compound_rows": 1456,
+  "compound_missing_dates": [
+    "2024-07-05",
+    "2024-08-01",
+    "2024-08-05",
+    "2024-11-25",
+    "2024-12-20"
+  ],
+  "compound_gaps_are_not_zero_volume": true,
+  "cred_sample_rows": 75,
+  "cred_first_date": "2021-01-03 11:25:03",
+  "cred_last_date": "2022-06-25 21:24:39",
+  "cred_rows_overlapping_study": 0,
+  "cred_algebraic_hf_max_error": 3.0540166794416294e-10,
+  "cred_sample_independent_chain_validation": false,
+  "original_base_models_refitted_by_this_script": false
+}

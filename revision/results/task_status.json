@@ -1,0 +1,49 @@
+[
+  {
+    "task": 1,
+    "analysis": "Independent Compound chain reconciliation",
+    "status": "blocked",
+    "reason": "Historical logs denied HTTP 403; no archive credentials"
+  },
+  {
+    "task": 2,
+    "analysis": "Actual Aave-to-Compound transfer",
+    "status": "executed_conditional",
+    "result": "New common-schema GRU and graph models transferred with frozen source weights; target history used for q95 scaling; filtered publisher sample only"
+  },
+  {
+    "task": 3,
+    "analysis": "Historical Aave Health Factor",
+    "status": "not_completed",
+    "result": "Basic legacy reconstruction code and selected requests supplied; no empirical chain-state output"
+  },
+  {
+    "task": 4,
+    "analysis": "Network incremental value",
+    "status": "partially_executed",
+    "result": "Local/market and graph ablations complete; HF-augmented comparison unavailable"
+  },
+  {
+    "task": 5,
+    "analysis": "Fusion with independent temporal holdout",
+    "status": "executed",
+    "result": "744 later forecasts,40positives; same data source, different calendar; no demonstrated learned-gate gain"
+  },
+  {
+    "task": 6,
+    "analysis": "Statistical and code audit",
+    "status": "executed",
+    "result": "All supplied score/operational/sensitivity tables recomputed; primary refit;14tests passed"
+  },
+  {
+    "task": 7,
+    "analysis": "Manuscript revision",
+    "status": "research_review_version",
+    "result": "Rewritten with actual results and explicit evidence gaps"
+  },
+  {
+    "task": 8,
+    "analysis": "LaTeX, PDF, reproducible package and separate GitHub review branch",
+    "status": "review_package_prepared"
+  }
+]

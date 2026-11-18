@@ -1,0 +1,56 @@
+[
+  {
+    "experiment": "transfer",
+    "model": "shared_gru",
+    "training_domain": "aave_source_only",
+    "n": 942,
+    "max_absolute_probability_error": 3.238472681688087e-08,
+    "tolerance": 1e-06,
+    "passed": true
+  },
+  {
+    "experiment": "transfer",
+    "model": "shared_graph",
+    "training_domain": "aave_source_only",
+    "n": 942,
+    "max_absolute_probability_error": 2.4254091374187325e-08,
+    "tolerance": 1e-06,
+    "passed": true
+  },
+  {
+    "experiment": "transfer",
+    "model": "shared_gru",
+    "training_domain": "compound_supervised_reference",
+    "n": 942,
+    "max_absolute_probability_error": 3.671836212859603e-08,
+    "tolerance": 1e-06,
+    "passed": true
+  },
+  {
+    "experiment": "transfer",
+    "model": "shared_graph",
+    "training_domain": "compound_supervised_reference",
+    "n": 942,
+    "max_absolute_probability_error": 2.849076113919935e-08,
+    "tolerance": 1e-06,
+    "passed": true
+  },
+  {
+    "experiment": "later_holdout",
+    "model": "gru",
+    "training_domain": "aave",
+    "n": 744,
+    "max_absolute_probability_error": 9.8879238130678e-17,
+    "tolerance": 1e-06,
+    "passed": true
+  },
+  {
+    "experiment": "later_holdout",
+    "model": "graph",
+    "training_domain": "aave",
+    "n": 744,
+    "max_absolute_probability_error": 9.71445146547012e-17,
+    "tolerance": 1e-06,
+    "passed": true
+  }
+]
