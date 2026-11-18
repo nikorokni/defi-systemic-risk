@@ -4,7 +4,7 @@
 \PassOptionsToPackage{dvipsnames,svgnames,x11names}{xcolor}
 %
 \documentclass[
-  11pt,
+  10pt,
   a4paper,
 ]{article}
 \usepackage{amsmath,amssymb}
@@ -23,7 +23,7 @@
   % xetex/luatex font selection
   \setmainfont[]{Latin Modern Roman}
   \setsansfont[]{Latin Modern Sans}
-  \setmathfont[]{Latin Modern Math}
+  \setmonofont[]{Latin Modern Mono}
 \fi
 % Use upquote if available, for straight quotes in verbatim environments
 \IfFileExists{upquote.sty}{\usepackage{upquote}}{}
@@ -42,7 +42,7 @@
   \KOMAoptions{parskip=half}}
 \makeatother
 \usepackage{xcolor}
-\usepackage[margin=26mm]{geometry}
+\usepackage[margin=23mm]{geometry}
 \usepackage{longtable,booktabs,array}
 \usepackage{calc} % for calculating minipage widths
 % Correct order of tables after \paragraph or \subparagraph
@@ -120,6 +120,7 @@
 \usepackage{fancyhdr}
 \usepackage{titlesec}
 \usepackage{needspace}
+\usepackage{float}
 \definecolor{papernavy}{HTML}{172E41}
 \definecolor{paperteal}{HTML}{006F73}
 \titleformat{\section}{\normalfont\Large\bfseries\color{papernavy}}{\thesection}{0.7em}{}
@@ -128,7 +129,7 @@
 \pagestyle{fancy}
 \fancyhf{}
 \fancyhead[L]{\footnotesize\sffamily Aave Liquidation Stress}
-\fancyhead[R]{\footnotesize Research draft}
+\fancyhead[R]{\footnotesize Research revision}
 \fancyfoot[R]{\small\thepage}
 \renewcommand{\headrulewidth}{0.3pt}
 \setlength{\headheight}{15pt}
@@ -145,9 +146,9 @@
   pdftitle={Early Warning of Aave Liquidation Stress under Delayed and Incomplete Network Data},
   pdflang={en-GB},
   pdfkeywords={decentralised finance, liquidation stress, temporal
-graphs, probability calibration, selective prediction},
+graphs, calibration, transfer learning, data provenance},
   colorlinks=true,
-  linkcolor={Maroon},
+  linkcolor={teal},
   filecolor={Maroon},
   citecolor={Blue},
   urlcolor={teal},
@@ -161,465 +162,310 @@ Incomplete Network Data}
   \apptocmd{\@title}{\par {\large #1 \par}}{}{}
 }
 \makeatother
-\subtitle{A retrospective walk-forward study of Ethereum Aave V2 and V3}
+\subtitle{Chronological forecasting, reliability-aware fusion and
+conditional cross-protocol transfer}
 \author{}
-\date{Research draft · 16 November 2026}
+\date{Revised research manuscript - 17 November 2026}
 
 \begin{document}
 \maketitle
 \begin{abstract}
-A liquidation-risk warning can be useful only if its inputs are
-available at the decision time and its probabilities remain
-interpretable when those inputs deteriorate. This study tests whether
-weekly token-mediated exposure graphs add information to daily forecasts
-of liquidation stress in two Ethereum Aave version series. A pinned
-release of event-level liquidation records supplies the outcome, and
-strictly lagged oracle and reserve observations supply the market and
-local predictors. Each of three chronological folds sets its own
-version-specific stress threshold from the training period. Of 1,022
-held-out forecasts, 110 were followed by volumes above their respective
-thresholds. The calibrated temporal graph ensemble achieved average
-precision of 0.1949 and Brier score of 0.0938, compared with 0.2479 and
-0.0904 for the equally timed market-augmented recurrent ensemble. The
-paired 14-day block intervals for the score differences included zero,
-with point estimates favouring the recurrent benchmark. With delayed and
-thinned inputs, the graph's average precision fell further, and
-augmentation had mixed effects across ranking and probability loss. A
-validation-fixed review rule deferred 245 forecasts, including 24
-positive episode onsets, illustrating the operational cost of using
-model disagreement as a gate. The public replication package includes
-the source manifest, timed splits, executable models and scored forecast
-ledger. The findings describe predictive value in this cohort and inform
-the design of monitoring interfaces for DeFi risk governance.
+Network measurements can inform liquidation monitoring only if they add
+predictive value to timely local information and remain useful when
+observations deteriorate. We evaluate daily tail-volume warnings for the
+Ethereum Aave V2 and V3 series using event-level liquidation records,
+timestamped reserve and oracle inputs, and weekly global
+protocol-exposure graphs. Three chronological test folds contain 1,022
+forecasts and 110 positive outcomes. Recomputed average precision is
+0.1954 for a calibrated temporal graph ensemble, 0.2479 for the matched
+market-augmented GRU and 0.3127 for prior-day liquidation. The
+graph-minus-GRU AP difference is -0.0525, with a paired 14-day block
+interval of {[}-0.1488, 0.0161{]}. Across 100 edge-removal masks per
+rate, ranking and probability accuracy respond differently. A previously
+unscored later Aave window contains 744 forecasts and 40 positives: a
+learned reliability gate obtains AP 0.3230 and Brier 0.04644, versus
+0.3242 and 0.04626 for the GRU. Newly trained common-schema models are
+transferred with frozen source weights to published Compound histories.
+Ranking transfer is weak, but inference is conditional on an
+outlier-filtered daily dataset with five missing dates, including 5
+August 2024. Independent contract reconciliation and a representative
+historical Health Factor baseline remain unresolved. The evidence
+documents conditional forecasting performance and failure modes, rather
+than a demonstrated network or fusion advantage.
 \end{abstract}
 
 \section{Introduction}\label{introduction}
 
-Lending protocols such as Aave give observers an unusually detailed view
-of financial distress. Collateral, debt and most changes to a position
-can be reconstructed from a ledger. That visibility does not make the
-timing or aggregate size of liquidations obvious. Borrowers can add
-collateral or reduce their debt before an account becomes eligible. A
-price update can put multiple positions below their liquidation
-threshold at once. The timing and execution of liquidations also depend
-on the liquidity available to liquidators and the cost of transacting
-(Qin et al. 2021; Schuler 2026). A protocol dashboard that reports
-liquidation volume is therefore answering a different question from a
-monitoring system that must decide, before the next observation
-interval, whether an unusually large volume is likely.
+Public blockchain records expose events that are difficult to observe in
+conventional credit markets. That visibility does not make tomorrow's
+aggregate liquidation volume straightforward to predict. Position
+eligibility depends on collateral, debt, prices and protocol rules;
+realised liquidation additionally depends on borrower adjustments,
+execution incentives and available liquidity. Empirical work documents
+liquidation incentives and execution frictions (Qin et al. 2021; Schuler
+2026). An early-warning study must therefore define its outcome
+precisely. Here it is unusually large \emph{realised, source-reported
+USD liquidation volume}, not the probability that an individual borrower
+becomes insolvent.
 
-The distinction is consequential when a warning enters a risk-governance
-workflow. A risk analyst can use an estimate of tomorrow's liquidation
-pressure to decide which markets to inspect, verify whether a price
-input is stale, or commission a position-level exposure assessment. Each
-action consumes attention. A system that sends more warnings on all
-high-volatility days can catch additional events while overloading that
-workflow. A second output for uncertainty is useful only if it improves
-routing under the same operational constraints. A model's ability to
-rank cases, its ability to assign calibrated probabilities and the
-behaviour of a review queue are separate empirical quantities.
+The potential contribution of network information is conditional. A
+token-mediated link might contain information beyond recent
+liquidations, reserve conditions and market prices. It might instead
+reflect common price movements, protocol scale or retrospective data
+construction. DeXposure supplies historical measurements of global
+inter-protocol exposure (Wu et al. 2025). Matching them to Ethereum Aave
+outcomes permits a predictive comparison under an explicit lag
+assumption. It does not identify causal transmission or establish that a
+published historical graph was obtainable on each forecast date.
 
-Aave is also part of an ecosystem in which tokens issued by one protocol
-can be held or accepted elsewhere. Fixed-income intuition suggests that
-counterparty information might contribute to warnings after accounting
-for common market factors. The observable network in DeFi is different
-from a bilateral debt ledger. DeXposure links protocol holdings and
-issuing protocols using the composition of total value locked (TVL) (Wu
-et al. 2025). Its weights contain information about token-mediated
-dependencies and are partly sensitive to valuations. Changes can
-therefore reflect prices, portfolio composition, data coverage and
-evolving links. The study asks whether these measurements contain
-incremental information for a realised outcome measured from liquidation
-events.
+We ask whether a temporal graph improves ranking or probability loss
+over the same timed local/market inputs; whether disagreement-based
+fusion protects forecasts when network observations deteriorate; and
+whether common-schema Aave models transfer to Compound. The last
+question is conditional because the available Compound dataset has
+material provenance and calendar limitations. A fourth question is
+specified but remains untested: whether networks add information after a
+representative historical borrower Health Factor panel is included.
 
-The main experiment issues a prediction at each UTC midnight. A weekly
-global graph enters with a conservative assumed reporting lag. The
-forecast target is the source-reported USD value liquidated during the
-following 24 hours, converted to an indicator using only a
-training-period threshold for the corresponding market version.
-Oracle-price observations are taken from their actual update times. The
-design joins the graph to Ethereum outcomes at the version level. This
-permits a direct operational test of the graph as it is published,
-subject to a known geographic mismatch between covariate and target.
+The contribution is an auditable benchmark and a set of negative or
+qualified findings. We distinguish score recomputation from model
+refitting, corruption draws from independent training repetitions,
+chronological novelty from independent source validation, and actual
+weight transfer from a separately fitted external benchmark. A later
+Aave holdout extends evaluation beyond the previously inspected
+calendar. Every reported result comes from a saved ledger; unfinished
+analyses are listed explicitly.
 
-The study has four components. It first compares a directed,
-time-varying graph encoder with models using the same local and oracle
-inputs, including a recurrent model and boosted trees. It then holds the
-test period apart from calibration and quantifies differences in proper
-scores and event ranking. It challenges the same fitted models with
-reporting delays and missing links, with an augmented graph model
-trained against an additional observation regime. Finally, it follows
-the consequences of the forecast through two threshold rules and two
-documented episodes of stress. A weighted lagged association probes
-whether the measured link between the two labelled versions helps after
-including the other version's prior liquidation volume.
+\section{Related research}\label{related-research}
 
-\section{Related work}\label{related-work}
+\subsection{Liquidation mechanisms and realised
+distress}\label{liquidation-mechanisms-and-realised-distress}
 
-\subsection{Liquidation, liquidity and
-propagation}\label{liquidation-liquidity-and-propagation}
+Qin et al. (2021) compare liquidation mechanisms and examine incentives
+and borrower losses. Lehar and Parlour (2022) study interactions between
+liquidation and decentralised trading. These mechanisms motivate
+monitoring aggregate pressure but require more evidence than a
+forecasting coefficient to establish contagion. Chiu and Danisman (2026)
+document leverage and concentrated liquidation waves in Aave V3. Schuler
+(2026) distinguish undercollateralisation from subsequent execution in
+Aave V2. Our daily outcome aggregates such processes rather than
+estimating account-level transition probabilities.
 
-Existing on-chain studies distinguish the mechanics of liquidation from
-later consequences for asset markets. Qin et al. (2021) compare
-liquidation designs across major Ethereum lending platforms and document
-differences in financial incentives and outcomes for borrowers. Lehar
-and Parlour (2022) connect collateral liquidations to subsequent trading
-and asset-price pressure. Their identification uses trades around actual
-liquidation events and multiple trading venues. The mechanism is
-economically important for the present work. It also illustrates the
-additional data required to show that a price effect or liquidation in
-one market caused another event. A lagged coefficient on a TVL-based
-link does not identify the financial feedback mechanism they study.
+The cross-version study of Iftikhar, Wei, and Cartlidge (2025) uses
+daily Aave and Compound data for panel regression. Its repository
+supplies our external series. Regression and tail-warning studies have
+different data requirements: removing extreme observations may be a
+regression robustness choice, while removing a crisis day directly
+compromises a stress benchmark. We therefore inspect the full calendar
+and retain the fact of exclusion in every transfer interpretation. A
+named liquidation column is not treated as contract-level validation.
 
-Chiu and Danisman (2026) use Aave V3 transaction data to describe
-recurring leverage and the concentration of liquidations into waves.
-They also report limited impacts on broader markets in their sample.
-Those findings motivate measuring the timing and concentration of
-liquidation volume while leaving general equilibrium effects outside the
-estimand. Schuler (2026) studies the transition from a position's
-eligibility for liquidation to successful execution, using block-level
-observations in Aave V2. Here the prediction unit is a market version
-and a day, with the influence of position-level frictions aggregated
-into the realised outcome. Barbon, Barthélemy, and Nguyen (2026) develop
-a forward-looking Aave liquidation-risk proxy using option-implied
-downside risk and loan impairment in wallet-level collateral shocks.
-That approach measures the vulnerability of reconstructed books under an
-explicit market scenario. This study evaluates a directly observed tail
-event at a shorter horizon and measures how forecast quality changes
-when the graph and oracle inputs arrive late.
+\subsection{Network learning and
+transfer}\label{network-learning-and-transfer}
 
-\subsection{Financial networks as forecasting
-inputs}\label{financial-networks-as-forecasting-inputs}
+DeXposure reconstructs global token-mediated relationships and
+benchmarks clustering, exposure dynamics and link prediction (Wu et al.
+2025). DeXposure-FM extends this setting to flow and graph forecasting
+(Shu et al. 2026). Their outcomes differ from realised next-day
+liquidation warnings. We use a weighted inductive neighbour encoder
+inspired by GraphSAGE (Hamilton, Ying, and Leskovec 2017) followed by a
+GRU (Cho et al. 2014). The non-graph GRU is the central matched
+comparator. Predicting topology well does not guarantee incremental
+liquidation information conditional on local histories and prices.
 
-DeXposure reconstructs token-mediated holdings from protocol-level TVL
-composition. Its published benchmarks include network clustering, sector
-responses around Terra and FTX, and dynamic link prediction (Wu et al.
-2025). DeXposure-FM predicts changes in protocol flows and the topology
-and weights of links. It then derives concentration and spillover
-measures for stress analysis (Shu et al. 2026). Those tasks explain how
-a network evolves. A liquidation-warning model uses the network as an
-input and is evaluated on a separate outcome from the lending event
-record. The distinction matters because a model can describe network
-structure well while providing little information about the next
-liquidation wave conditional on prices.
+Transfer is more demanding than evaluating models on two datasets.
+Source weights, feature transforms, stopping rules and calibration must
+remain fixed during target prediction. Feature meanings and target
+definitions must also be aligned. We train new shared-schema variants
+and distinguish them from the original reserve-augmented models. The
+experiment tests that common representation under documented
+assumptions; it does not establish portability of every original
+predictor or checkpoint.
 
-A GraphSAGE-style encoder can aggregate neighbour features with learned
-transformations and shared parameters (Hamilton, Ying, and Leskovec
-2017). The model here uses separate transforms for the two edge
-directions and an explicit exposure weight. It restricts aggregation to
-an ego network around each focal protocol version. The history model is
-a gated recurrent unit (GRU) (Cho et al. 2014). This size suits a
-benchmark with two labelled entities. A version of the same network with
-fixed topology tests whether time-varying links add information beyond
-the temporal variation of node attributes. Models using only network
-summaries help diagnose whether any observed gain requires learned
-neighbour aggregation.
+\subsection{Calibration, disagreement and
+decisions}\label{calibration-disagreement-and-decisions}
 
-\subsection{Calibration and decisions under incomplete
-information}\label{calibration-and-decisions-under-incomplete-information}
+Average precision (AP) measures rare-event ranking, while Brier score
+and log loss measure probability quality (Saito and Rehmsmeier 2015;
+Gneiting and Raftery 2007). These objectives can disagree. Calibration
+can improve probability loss without creating new information (Guo et
+al. 2017). Deep ensembles measure variation across fitted members
+(Lakshminarayanan, Pritzel, and Blundell 2017), but their spread is not
+a complete uncertainty measure. All members can share a misspecification
+or use the same obsolete graph. Distribution-shift evidence motivates
+evaluation beyond the original calendar (Ovadia et al. 2019).
 
-The Brier score and log loss evaluate whether a forecast puts adequate
-probability on the observed outcome (Gneiting and Raftery 2007). With a
-rare outcome, average precision makes clear how many false positives
-enter the upper tail of a ranking (Saito and Rehmsmeier 2015). Those
-scores need not favour the same model. In the benchmark a probability
-calibrator may improve proper scores while preserving most within-fold
-ranks. It can change pooled ranks across folds because each fold fits
-its own calibration function. Reliability diagrams are reported with
-frequencies and sample sizes because high-probability bins often contain
-few cases.
+Selective classification studies retained coverage and error (Geifman
+and El-Yaniv 2017). A monitoring interface must additionally count
+manual review and missed episode onsets. We distinguish a review queue,
+which defers a case, from a probability mixture, which changes its
+forecast. Neither is considered useful merely because it lowers a
+conditional error or marginally improves one ranking score.
 
-Deep ensembles provide an empirical spread over models trained with
-different initialisations and data orders (Lakshminarayanan, Pritzel,
-and Blundell 2017). Calibration on familiar data and reliability under
-distribution shift are different properties (Guo et al. 2017; Ovadia et
-al. 2019). The test treats the variance of ensemble scores as a
-candidate ranking of uncertainty. It cannot measure all the sources of
-risk, including unexpected new collateral behaviour or a systematic
-error shared by all members. Selective prediction evaluates a review
-rule by the observed loss on retained cases and the fraction covered
-(Geifman and El-Yaniv 2017). For liquidation monitoring it is also
-important to count what the uncertainty rule defers. A lower conditional
-loss can result simply from concentrating manual review on many of the
-event days.
+\section{Data, provenance and timing}\label{data-provenance-and-timing}
 
-\section{Cohort, data and information
-timing}\label{cohort-data-and-information-timing}
+\subsection{Primary Aave cohort}\label{primary-aave-cohort}
 
-\subsection{Ethereum outcomes and graph
-matching}\label{ethereum-outcomes-and-graph-matching}
+The primary calendar is 1 March 2023-24 August 2025. Each forecast
+concerns one archive-labelled Ethereum Aave version at UTC midnight. The
+pinned Chaffard release supplies liquidation events, paired hourly
+aggregates, reserve histories and Chainlink oracle updates (Chaffard
+2026). Reserve inputs cover DAI, USDC, USDT and WETH. Event IDs and
+transaction-hash/log-index pairs are unique. Event sums and counts
+reconcile to the publisher's hourly tables. This is internal
+consistency, not independent reconstruction of every contract log or USD
+valuation.
 
-The empirical unit is a version-day for Aave V2 or V3 on Ethereum in the
-Chaffard archive (Chaffard 2026). The public release has two event
-tables and paired hourly aggregate tables, with separate hourly reserve
-series. The V3 Core launch on 27 January 2023 is documented in the
-executed Aave governance proposal (Aave Governance 2023). The V3 USDT
-reserve series begins on 13 February 2023. Forecast origins start on 1
-March 2023 to provide history after both versions and all four reserve
-series enter the source. The last forecast origin is 24 August 2025,
-corresponding to the end of the common graph evaluation calendar. This
-period includes 1,816 version-days before defining train, development
-and test windows. The estimation history precedes the first scored
-origin by thirteen months.
+The graph is pinned to DeXposure commit
+\texttt{79071f26ddb3cf59adb433fb277bc820732bf863}, with 283 weekly
+snapshots through 18 August 2025. AAVE V2 is node 111 and AAVE V3 node
+1599. Global protocol coverage is broader than Ethereum outcomes.
+Self-links, unmapped entities and nonpositive/nonfinite weights are
+excluded, repeated pairs are summed and up to 16 neighbours per
+direction are retained by weight. A snapshot is eligible only when it is
+at least seven days old.
 
-The graph is the pinned weekly Git LFS file from the DeXposure
-repository (Wu et al. 2025). Its 283 releases are dated Mondays from 23
-March 2020 to 18 August 2025. The mapping file identifies AAVE V2 as
-node 111 and AAVE V3 as node 1599. Each event table uses the source
-publisher's Ethereum and Aave version tags. The link is an exact match
-of the version names but a coarser match than an Ethereum pool or
-reserve address. The retained graph includes DeXposure protocol
-identifiers only. Unmapped token-only nodes, nonpositive weights and
-self-links are discarded. Repeated directed pairs are summed within the
-same snapshot. The extractor retains 136 weeks around the panel buffer
-and analysis dates and 3,436 V2 and 4,109 V3 directed ego-edge
-appearances before the top-neighbour restriction. The latest analysis
-day uses the most recent snapshot admissible under the lag rule.
-
+\Needspace{10\baselineskip}
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 6\tabcolsep) * \real{0.2500}}@{}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}@{}}
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Input
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Unit in analysis
+Forecast-time restriction
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Timing rule
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Use
+Interpretation
 \end{minipage} \\
 \midrule\noalign{}
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-Aave liquidation events & Ethereum version, event & UTC block-event
-timestamp & Future USD total and past event history \\
-Aave reserve snapshots & Ethereum version, reserve & Most recent
-timestamp strictly before issue, up to 48 h old & Borrowing and reserve
-utilisation \\
-Chainlink ETH/USD and BTC/USD & Oracle update & Most recent update
-strictly before each hourly boundary, up to 3 h old & Returns,
-volatility, minimum return and age \\
-DeXposure & Global version and protocol peer & Weekly date at least
-seven days before issue & Directed exposures and node sizes \\
-DefiLlama borrowing & Ethereum version aggregate & Prior dated daily
-snapshot, up to two days old & Secondary label denominator \\
+Liquidation history & Events strictly before midnight & Prior realised
+activity \\
+Reserve state & Strictly prior observation; maximum age two days &
+Selected reserve conditions \\
+Oracle updates & Strictly prior actual update; maximum age three hours &
+Returns, volatility, freshness \\
+Exposure graph & Snapshot dated at least seven days earlier & Lagged
+global context \\
+Future events & Following 24 hours & Outcome only \\
 \end{longtable}
 
-The release's two event tables have 50,485 V2 and 25,972 V3 rows. Of
-those, 13,654 V2 and 13,239 V3 rows fall within the forecast-origin
-calendar. With the source's USD valuations, those rows sum to
-approximately USD 194.7 million and USD 1,016.7 million, respectively.
-Event identifiers and transaction/log identifiers are unique within each
-version. The timestamp and UTC datetime fields agree at second
-resolution. A reaggregation agrees with both the counts and USD totals
-in the publisher's hourly tables over 22,656 hours per version,
-including the buffers used by the target windows. This cross-check
-detects internal extraction and alignment errors. The two tables share a
-publisher and therefore give no independently indexed estimate of missed
-chain events.
+These are retrospective releases. Source-event timestamp eligibility and
+historical public availability are distinct. The seven-day graph lag is
+an operational assumption, not a verified publication-time history.
+Historically deployable performance would require revision-aware
+acquisition logs. Mutable DefiLlama borrowing histories enter only the
+original borrowing-scaled sensitivity, with their downloaded hashes
+recorded separately.
 
-The combined study uses a separate event archive from the six-chain
-publication by Fan and Sun (2025). That publication is relevant to
-extending the benchmark to more deployments. The DOI identified in its
-manuscript returned HTTP 404 during this study's data preparation and
-its records were not analysed. Source identity for the implemented
-cohort is the Zenodo version v192 by Chaffard. The source manifest
-records verified hashes for the liquidation, oracle and graph files. The
-raw addresses in the event records are unnecessary for the analysis and
-do not enter the forecast ledger.
+\subsection{Run identity and
+reproduction}\label{run-identity-and-reproduction}
 
-\subsection{Observation and target
-definitions}\label{observation-and-target-definitions}
+The supplied main ledger and the existing GitHub ledger have identical
+keys and labels, but 18,011 of 48,034 probabilities differ by more than
+\(10^{-8}\). We use the supplied ledger consistently for the primary
+results because its fusion and 100-mask extensions refer to that run;
+columns from different runs are not mixed. All 47 model/scenario metric
+rows recompute within \(8.4\times10^{-17}\) of the supplied tables. This
+verifies score arithmetic and pairing, not unseen training-data
+provenance.
 
-Let \(i\) denote the version and let \(t\) be the beginning of a UTC
-day. Write \(a_e\) for the nonnegative source-reported USD value
-attached to liquidation event \(e\), with time \(T_e\). For prediction
-horizon \(h\) in hours, define \[
-L_{i,t}^{(h)} = \sum_{e\in\mathcal E_i}
-a_e\,\mathbf 1\{t\leq T_e<t+h\}.
-\] The lower boundary assigns a midnight event to the day starting at
-that midnight. Past-window features end strictly before \(t\). Denote by
-\(\mathcal T_f\) the training origins of fold \(f\). The target and its
-fold-specific threshold are \[
-\tau_{i,f}^{(h)} = Q_{.95}\{L_{i,r}^{(h)}:r\in\mathcal T_f\},\qquad
-Y_{i,t,f}^{(h)}=\mathbf 1\{L_{i,t}^{(h)}>\tau_{i,f}^{(h)}\}.
-\] The empirical quantile uses linear interpolation. A training
-threshold reflects the version's scale and the frequency of severe past
-outcomes. It need not imply a 5 per cent positive rate in the test
-period. The target measures realised volume. An orderly liquidation can
-reduce exposure and coexist with zero lender losses. Conversely, a
-period of illiquidity may inhibit execution and generate smaller
-realised volume than the underlying stress would suggest.
+A complete primary-model refit was executed from hash-matched raw
+archives. Its temporal-graph AP rounds to 0.1949, versus 0.1954 in the
+supplied ledger. The GRU, persistence and LightGBM headline scores agree
+at reported precision. A neural stopping epoch differs in fold C, and
+software environments differ. The subsequently available full aave.zip
+upload contains all six original raw-file hashes. Its processed graph
+values agree exactly with the reconstruction; panel differences are at
+floating-point round-off scale. Both ledgers remain available;
+byte-identical parquet or neural output is not asserted across Python
+and numerical-library versions. These small headline differences leave
+the interpretation unchanged.
 
-The primary analysis uses \(h=24\) and the reported dollar amount
-directly. In a sensitivity analysis \(L\) is divided by a prior broad
-Ethereum active-borrowing series from DefiLlama before estimating the
-thresholds (DefiLlama 2026). The borrowed series covers multiple
-Ethereum pool providers for V3 and includes an AMM market in the V2
-adapter. Its scope is therefore an approximate denominator for the
-publisher's event series. The scaled outcome is a volume-to-borrowing
-ratio and carries no interpretation as a fraction of a precisely matched
-debt book that was repaid or written off. Weekly and six-hour variants
-retain midnight issuance so that the set of decisions under comparison
-stays meaningful. The six-hour evaluation consequently describes the
-first part of the UTC day. A continuous intraday forecast would require
-more issuance times and independently evaluated reporting latencies.
+\subsection{Compound source audit}\label{compound-source-audit}
 
-All features at origin \(t\) are functions of observations dated before
-\(t\), with the additional lag on weekly graph snapshots. Let
-\(g(t)=\max\{d:d+7\,\mathrm{days}\leq t\}\) for graph dates \(d\).
-Weekly data are carried forward to the next admissible snapshot. The lag
-is a conservative study convention, not evidence that historical
-versions of the dataset were released exactly on that schedule. The
-provider's present release may embody retrospective revisions or
-mappings. The design is pseudo-real-time under source dating rules. An
-operational replay would require provider vintages and a history of
-actual delivery interruptions.
+The external CSV contains 1,456 rows from 1 January 2021 to 31 December
+2024. Its date column is \texttt{Date}; the earlier feasibility manifest
+incorrectly recorded a missing date field. The absent dates are 5 July,
+1 August, 5 August, 25 November and 20 December 2024. The source paper
+states that five outlier observations were removed (Iftikhar, Wei, and
+Cartlidge 2025). We reindex the full calendar, preserve missing values
+and exclude forecasts with an incomplete 14-step feature sequence.
+Because each step includes a seven-day aggregate, validity can require
+20 prior raw days. This leaves 196 scored days per Compound version in
+April-December 2024.
 
-Past liquidation features comprise log-transformed value and count over
-one, three and seven days, plus a version indicator. The local feature
-block includes log borrowed USD and the borrowed-to-supplied USD ratio
-in each of DAI, USDC, USDT and WETH. These reserves are covariates for
-the version-level forecast. Oracle series are reconstructed from
-individual updates. They supply one-day and seven-day log returns,
-one-day realised volatility (square root of the sum of 24 hourly squared
-log increments), the minimum hourly log increment over that day, and the
-age of the latest price. The as-of step rejects any tick at the forecast
-boundary. Four nonpositive ETH prints occur outside the study's feature
-range in the release. Inside the range, the pipeline requires positive
-prices before logarithms. Reserve or oracle features that fail an age
-limit enter as missing. The forecast design uses crypto-market variables
-with a direct connection to collateral and leverage, and leaves fiat FX
-effects for a study with an explicit FX-exposure mechanism.
+Excluding the missing 5 August neighbourhood does not repair an
+unfiltered crisis benchmark: it defines a sample omitting an important
+stress episode. On 667 overlapping dates per Aave version, the external
+Aave values and the pinned archive agree within USD 1. This establishes
+numerical compatibility but does not prove independent ingestion or
+validate Compound. Daily UTC alignment, exact deployment coverage and
+contract-specific USD semantics remain assumptions for transfer.
 
-\section{Forecasting and evaluation
-design}\label{forecasting-and-evaluation-design}
+\subsection{A previously unscored later
+window}\label{a-previously-unscored-later-window}
 
-\subsection{Directed temporal encoder}\label{directed-temporal-encoder}
+A separate specification was recorded before scoring 25 August 2025-31
+August 2026. The window contains 744 forecasts. Preparation of a longer
+window first failed on four negative ETH/USD source observations on 15,
+21 and 22 September 2026. Before generating later-window scores, we
+capped evaluation at the last preceding complete calendar month.
+September-November 2026 are quarantined. The amendment and final
+specification hash accompany the results.
 
-For direction \(d\in\{\mathrm{in},\mathrm{out}\}\), let
-\(\mathcal N^d_{i,t}\) contain the 16 largest positive mapped protocol
-links in snapshot \(g(t)\), using the peer identifier for deterministic
-tie-breaking. The two lists may contain a common peer. Its role in each
-direction is a distinct observation. Write \(w^d_{ij,t}\) for a retained
-link's USD weight and \(v_{j,t}\) for the peer node's reported USD size.
-Each peer vector contains \(\log(1+v_{j,t})/20\),
-\(\log(1+w^d_{ij,t})/20\) and an indicator that the node size is
-observed. The corresponding size component is zero if unavailable. The
-two directional maps \(\phi_d\) have separate parameters, with a 3-to-8
-affine layer, a rectified linear activation and an 8-to-8 affine layer.
-Weighted mean messages are \[
-m^d_{i,t} =
-\frac{\sum_{j\in\mathcal N^d_{i,t}} w^d_{ij,t}\,\phi_d(x^d_{ij,t})}
-     {\sum_{j\in\mathcal N^d_{i,t}} w^d_{ij,t}} .
-\] A direction with no retained weight contributes the zero vector. This
-preserves a fixed input size while allowing the partner set, weights and
-volume to change. Directed graph summaries add the focal node size and
-graph age, together with log total weight, link count, squared weight
-concentration and weighted mean log peer size separately by direction.
-In the static-topology ablation the identities and edge weights remain
-as at the earliest available buffered input graph (30 January 2023).
-Node sizes can still update as new snapshots become admissible.
+This uses the same Aave source: it is a new chronological test, not an
+independent dataset or prospective deployment. No graph snapshots are
+invented after the pinned release ends. Snapshot age grows from 7 to 378
+days, deliberately creating a stale-feed regime. Performance here cannot
+establish results with continuously refreshed networks.
 
-Local inputs, market inputs, graph summaries and the two
-eight-dimensional messages enter a 24-unit projected feature vector. The
-input projection uses layer normalisation and a rectified linear
-activation. A 24-unit GRU processes 14 consecutive origins for the same
-version and resets its state at the beginning of each window. It learns
-from the sequence of dated representations, rather than treating all
-network changes during a week as new graph information. A linear head
-projects the final state to one logit, with dropout of 0.1 during
-training. The recurrent comparator shares the projection width, history
-length, optimiser and validation rules. Its inputs consist of the local
-and market blocks. The no-sequence ablation passes only the newest time
-step, retaining the explicitly engineered past-liquidation features.
+\section{Methods}\label{methods}
 
-Continuous features in the local, market and summary blocks are centred
-and scaled using the training origins. The same transform is applied to
-tuning, calibration and test inputs. A missing indicator accompanies
-each variable. Standardised values are clipped to \([-12,12]\) and
-missing standardised values are set to zero. Graph-peer transforms use
-the fixed log scaling specified above. No tabular feature uses the
-as-yet-unobserved volume in the target interval.
+\subsection{Outcome and chronological
+separation}\label{outcome-and-chronological-separation}
 
-\subsection{Benchmarks and fitting}\label{benchmarks-and-fitting}
+Let \(V_{i,t}^{24}\) be source-reported liquidation USD for version
+\(i\) in \([t,t+24\mathrm{h})\). The fold-specific target is
+\[y_{i,t}^{(f)}=\mathbb{1}\{V_{i,t}^{24}>q_{i,f}\},\qquad q_{i,f}=Q_{0.95}\{V_{i,s}^{24}:s\in\mathcal T_f\}.\]
+Thresholds use training outcomes only and differ by version. Tail
+activity is relative to historical scale, not a universal insolvency
+boundary. Thresholds and prevalence can change between folds.
 
-The comparison begins with a version-specific smoothed training event
-rate and a one-day liquidation persistence model. The latter is a ridge
-logistic model fitted to the prior day's log liquidation value and a
-version indicator. More flexible tabular predictors comprise ridge logit
-with local and market inputs, and LightGBM (Ke et al. 2017) with and
-without graph summaries. The local-only logit uses the reserve and
-past-liquidation observations as a diagnostic for market feature drift.
-The tabular learners use the same target, sample origins and train-only
-transforms. The LightGBM specification uses 140 shallow trees, maximum
-depth three, seven leaves, a 30-observation minimum leaf size, a
-learning rate of 0.025 and L2 penalty 2.0. The logistic models use
-scikit-learn's L2 penalty with \(C=0.35\).
+Features include prior one-, three- and seven-day liquidation
+sums/counts, borrowing and utilisation in four reserves, and a version
+indicator. ETH/BTC channels contain one-/seven-day returns, daily
+realised volatility, minimum hourly return and observation age. A tuning
+interval selects neural stopping epochs; a subsequent calibration block
+fits probability maps and warning cutoffs. Training, tuning and
+calibration label windows end at least one day before the next
+partition. Test outcome windows remain within their fold. Fourteen-day
+input histories may precede a partition boundary because those
+observations are already known; future outcomes never enter inputs.
 
-The graph model, static ablation, market-free graph ablation, one-step
-graph ablation, recurrent non-graph model and augmentation variant use
-the same five seeds (19, 43, 71, 101 and 137). Each member minimises
-binary cross-entropy with AdamW at learning rate 0.001 and weight decay
-0.001. Batches contain at most 64 origin/version examples. Gradients are
-clipped to norm 2. Up to 36 epochs are run with a seven-epoch patience
-based on the tuning block's log loss. The best parameters are then
-restored, and the calibration block is scored once per member. The
-training objective uses the observed, unweighted binary labels so that
-learning and evaluation address the same probability. The reported
-first-member baseline is the seed 19 member, fixed in advance. Multiple
-seeds characterise training variation, while block resampling quantifies
-uncertainty from finite test time. They answer different questions.
-
-The pretrained DeXposure-FM model is relevant context for this work. Its
-published heads address network and flow outcomes, and the public
-pretrained representation does not supply a fold-specific liquidation
-benchmark with verified data isolation for these origins. The
-implemented graph and tabular comparisons are trained from scratch
-inside each fold. A supervised comparison with a network foundation
-model would require independently auditable training cutoffs and a
-downstream label adapter.
-
-\subsection{Splits and identification}\label{splits-and-identification}
-
-Each fold uses an expanding training interval beginning on 1 March 2023.
-A time-ordered tuning block selects neural stopping epochs. A later
-calibration block fits the probability maps and alert cutoffs. The date
-partition is identical across models for a given target. Each training,
-tuning and calibration label interval must end at least one calendar day
-before the next partition boundary. Outcome windows in each test fold
-lie inside that fold's end boundary. The 7-day horizon therefore has
-fewer test origins, with the trailing six days foregone per test fold.
-Histories may include earlier days from an adjacent partition. This
-reflects the information available at the issue time. Model fitting uses
-labels from the training origins alone.
-
+\Needspace{10\baselineskip}
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.0822}}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.3699}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1370}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1644}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1233}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1233}}@{}}
-\caption{Primary folds and training thresholds (USD thousands). Origin
-date ranges are inclusive.}\tabularnewline
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}@{}}
+\caption{Original folds; exact inclusive dates and unrounded thresholds
+are in run.json.}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
 Fold
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Test origins (UTC)
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Train \(n\)
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Test + / \(n\)
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-V2 q95
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-V3 q95
+Test origins
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Train n
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Test + / n
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+V2/V3 q95 (USD thousands)
 \end{minipage} \\
 \midrule\noalign{}
 \endfirsthead
@@ -627,185 +473,204 @@ V3 q95
 \begin{minipage}[b]{\linewidth}\raggedright
 Fold
 \end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
-Test origins (UTC)
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Train \(n\)
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Test + / \(n\)
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-V2 q95
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-V3 q95
+Test origins
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Train n
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Test + / n
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+V2/V3 q95 (USD thousands)
 \end{minipage} \\
 \midrule\noalign{}
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-A & 01 Apr to 31 Jul 2024 & 610 & 33/244 & 493 & 106 \\
-B & 01 Aug to 31 Dec 2024 & 852 & 24/306 & 617 & 416 \\
-C & 01 Jan to 24 Aug 2025 & 1158 & 53/472 & 670 & 815 \\
+A & Apr-Jul 2024 & 610 & 33 / 244 & 493 / 106 \\
+B & Aug-Dec 2024 & 852 & 24 / 306 & 617 / 416 \\
+C & Jan-Aug 2025 & 1158 & 53 / 472 & 670 / 815 \\
 \end{longtable}
 
-The primary contrast tests incremental graph information by holding the
-market and local blocks fixed and comparing the temporal graph ensemble
-with the market-augmented GRU. The second contrast removes the oracle
-features from the graph model while retaining local predictors. A third
-compares the single graph member, the raw mean, the calibrated
-probabilities and the review rule. A fourth tests whether augmentation
-makes predictions more reliable when the test observations deteriorate.
-All contrasts are conditional on the chosen models and information set.
-The analysis plan was recorded in the repository before inspecting model
-scores.
+\subsection{Models and fitting}\label{models-and-fitting}
 
-\subsection{Probabilities, perturbations and
-review}\label{probabilities-perturbations-and-review}
+Benchmarks include a smoothed training prior, a logistic persistence
+predictor using prior-day liquidation, local/market logistic models and
+shallow LightGBM with and without graph summaries (Ke et al. 2017). The
+neural comparison uses the same 14-day history and a 24-unit GRU. Five
+seeds (19, 43, 71, 101, 137) form each ensemble. Training uses
+unweighted binary cross-entropy, AdamW at learning rate 0.001/weight
+decay 0.001, batch size 64, gradient norm cap 2, at most 36 epochs and
+tuning-loss patience seven.
 
-For members \(k=1,\ldots,K\), let \(p^{(k)}_{i,t}\) be the sigmoid of
-the network output. The ensemble mean and disagreement are \[
-\bar p_{i,t}=K^{-1}\sum_{k=1}^K p^{(k)}_{i,t},\qquad
-u_{i,t}=K^{-1}\sum_{k=1}^K(p^{(k)}_{i,t}-\bar p_{i,t})^2.
-\] A ridge Platt calibration fits an intercept and positive slope to
-\(\operatorname{logit}(\bar p)\). The penalty \(\frac{1}{2}(b-1)^2\)
-shrinks the fitted slope \(b\) towards the identity. Probabilities are
-clipped to \([10^{-6},1-10^{-6}]\) for numerical evaluation. An isotonic
-mapping provides a more flexible reference. The uncertainty score uses
-the raw ensemble variance and validation percentile to compare forecasts
-from different folds. It includes training variability due to the chosen
-parameterisation and data. It cannot track all aspects of posterior
-uncertainty, nor does a large value necessarily predict an incorrect
-ranking.
+The graph encoder transforms neighbour log size, log weight and an
+availability flag through direction-specific multilayer maps. Normalised
+exposure weights form incoming/outgoing means. These are joined with
+local/market inputs and graph statistics: own size, age, total exposure,
+retained degree, concentration and mean peer size. A linear layer, layer
+normalisation and ReLU precede the GRU. Training-only scaling clips
+standardised inputs to \([-12,12]\) and represents missing values with
+zeros plus indicators. This tests a particular feature/model combination
+rather than all graph architectures.
 
-The observation perturbations act on covariates after labels and split
-boundaries are set. Edge thinning drops each retained link independently
-with probability 0.10, 0.30 or 0.50. The random draw is fixed for a
-snapshot, version, direction and slot. Origins that share the snapshot
-see the same removal pattern. The three rates use nested subsets from
-the same random draws. A removed edge is excluded from both learned
-messages and summary features. A separate scenario uses the market
-covariates on the preceding UTC day. A third uses the most recent graph
-admissible under a 14-day total lag. A combined case applies 30 per cent
-thinning, the one-day oracle delay and the extra week of graph delay.
-The nominal calibrator and the alert and review thresholds are frozen in
-each perturbation. These interventions describe sensitivity of the
-forecast to missing and stale observations. They do not shock the
-underlying markets or change actual liquidation outcomes.
+Static topology, one-step graph input, removal of market channels and
+augmented training diagnose specific components. One-step models retain
+engineered historical features and therefore are not information-free
+about the past. No positive directed edge connects the two labelled Aave
+version nodes in this extraction. The weighted cross-version interaction
+consequently has no identifying variation and cannot support a causal
+spillover estimate.
 
-The augmented ensemble uses the same architecture and training origins.
-Every training batch contributes half its loss on clean inputs and half
-on a view with 30 per cent thinning and a one-day oracle delay. The
-augmentation mask uses a different fixed seed from the test mask. Early
-stopping and calibration still use the clean development inputs. The
-additional week of graph staleness is unseen during augmented fitting.
-For all learners, temporal feature transformations under delays use
-earlier as-of covariates and never substitute future records.
+\subsection{Calibration, corruption and
+review}\label{calibration-corruption-and-review}
 
-An automated alert fires when the fitted probability exceeds the 90th
-percentile of its calibration-block scores. The review rule first routes
-origins above the corresponding 90th percentile of disagreement into
-review. Among the remainder it applies the same probability cutoff. A
-review does not count as an automated warning. The two cutoffs are fixed
-by the calibration distribution, so the number of alerts and reviews can
-drift during a test fold. To quantify this drift, we report the realised
-review load, false alerts per week, positive origins reviewed and
-episode-onset recall. An episode begins with a positive origin that is
-preceded by a nonpositive day or by the start of a fold. Lead time for
-each detected onset is the time from midnight to the first event that
-brings cumulative USD volume above the fold's threshold. The result is
-an intraday lead time within the target horizon. It is different from
-lead time relative to the first liquidation or the first price movement,
-both of which can precede the threshold crossing.
+The raw ensemble probability is the mean of five members; disagreement
+is their variance. A positive-slope ridge Platt map is fitted on
+calibration data and frozen. Probabilities are clipped to
+\([10^{-6},1-10^{-6}]\) for log loss. An isotonic sensitivity remains in
+the original ledgers.
 
-\subsection{Performance measures and statistical
-uncertainty}\label{performance-measures-and-statistical-uncertainty}
+Edge thinning removes retained links with probabilities 0.10, 0.30 or
+0.50. Each mask is fixed within snapshot, version, direction and
+neighbour slot. One fitted ensemble per fold is evaluated under 100
+masks per rate; rates share nested draws. Empirical mask percentiles
+describe corruption variability conditional on fixed weights, not
+population confidence intervals or 100 training repetitions. Other
+original scenarios add one oracle day, seven graph days, or both with
+30\% thinning. Outcomes are held fixed; these are observation
+disruptions, not market shocks.
 
-The primary measures are pooled out-of-sample average precision (AP) and
-Brier score. Reported AP is the recall-weighted sum of precision at
-successive score thresholds. AUROC and unweighted log loss provide
-complementary ranking and probability summaries. Calibration is
-summarised by observed versus mean predicted frequency in ten
-equal-width bins, a weighted absolute calibration error and a binned
-Brier decomposition. The decomposition pertains to assigning each case
-its bin's mean forecast. The raw Brier score is computed on the original
-probabilities.
+An alert fires above the calibration-probability 90th percentile. A
+separate review queue first defers cases above the
+calibration-disagreement 90th percentile. Deferral does not count as
+automated warning or successful analyst detection. Onsets are first
+positive days after a nonpositive day or fold boundary. Lead time is
+measured to cumulative target-volume threshold crossing, not necessarily
+to the first liquidation.
 
-For each paired contrast, moving-block resampling draws contiguous
-calendar days with replacement within each test fold. Both versions on a
-selected date and both models' forecasts travel together (Künsch 1989).
-The main intervals use 1,000 draws and a 14-day block. For the primary
-graph-GRU comparison, intervals at seven and 28 days test sensitivity to
-the block length. The procedure is conditional on the fitted forecasts
-and past regimes. It preserves clustering within a block and does not
-represent model refitting uncertainty or uncertainty across future
-regimes. Historical windows are evaluated descriptively because each
-contains few days and common market shocks.
+\subsection{Reliability-aware fusion}\label{reliability-aware-fusion}
 
-The lagged association compares the log value of the other labelled
-version's preceding-day liquidation volume with a version weighted by
-the incoming share in the admissible graph. Both specifications include
-the same local and market predictors. Define
-\(s_{i,t}=w_{ji,t}/\sum_k w_{ki,t}\) for the other labelled version
-\(j\), using zero if the incoming denominator is zero. Enter \(s_{i,t}\)
-and its interaction with the lagged log volume as additional predictors.
-This conditional forecast contrast requires the graph to contain
-positive links between labelled versions. Where both graph columns are
-zero, the feature variation required by the question is absent.
+For calibrated graph/local forecasts \(p_G,p_L\) and graph disagreement
+percentile \(r\), the fixed mixture uses \(w=1/2\) and the heuristic
+uses \(w=(1-r)/2\): \[p_F=w p_G+(1-w)p_L.\] The learned gate is
+\[w_\theta=\operatorname{sigmoid}(\theta_0+\theta_1r+\theta_2|p_G-p_L|+\theta_3p_G).\]
+It minimises summed binary cross-entropy plus
+\(\lambda\|\theta-\theta^{\mathrm{prior}}\|_2^2/2\), with prior
+\((-1.5,-1,0,0)\). Original A predictions fit candidates and B selects
+\(\lambda\in\{0.1,1,10,100\}\) by log loss; the selected value is 0.1.
+For exploratory C evaluation, the gate is refitted on A/B. For the later
+window, it is refitted on earlier A/B/C out-of-sample predictions. C was
+already inspected when fusion was proposed, so C is not a fresh
+discovery test.
+
+The later base experts train through 29 April 2025, tune on 1 May-26
+June and calibrate on 28 June-23 August. Later outcomes do not fit
+experts, calibration, gate parameters or expiry rules. A specified
+freshness comparator sets heuristic graph weight to zero when graph age
+exceeds 28 days. This probes conservative fallback rather than learning
+an optimal expiry. The later specification is retrospective and not
+externally preregistered.
+
+\subsection{Executed source-weight
+transfer}\label{executed-source-weight-transfer}
+
+Transfer variants replace reserve-specific channels with three shared
+lagged-volume features,
+\[x_{i,t}^{(k)}=\log\left(1+\frac{\sum_{j=1}^{k}V_{i,t-j}}{q_{i,\mathrm{train}}}\right),\quad k\in\{1,3,7\},\]
+plus the same timed ETH/BTC inputs. The identity channel is constant
+zero. Graph variants use the same neighbour encoder, with Compound nodes
+114/2088. Aave alone fits source scaling, neural weights, stopping rules
+and Platt calibration. Training covers 1 March-30 December 2023, tuning
+1 January-13 February 2024, calibration 15 February-30 March and testing
+April-December 2024.
+
+Compound's 2023 q95 defines its target and unit normalisation. This use
+of target history is explicit: the experiment is source-weight transfer
+with target historical scaling, not zero information about the target.
+No Compound label fits the transferred weights or calibration.
+Separately trained Compound models provide supervised references under
+the same chronology. They are distinct estimators, not fine-tuned source
+models selected on target test scores. Paired comparisons use the same
+valid target dates. The original reserve-augmented checkpoints are not
+claimed to have been transferred.
+
+\subsection{Scores and uncertainty}\label{scores-and-uncertainty}
+
+We compute AP, Brier, log loss and AUROC from paired ledgers. A
+moving-block bootstrap samples contiguous dates within each fold,
+carrying both Aave versions and both models together (Künsch 1989). Main
+contrasts retain 2,000 valid 14-day draws; original graph/GRU
+comparisons also use seven-/28-day blocks. Percentile intervals
+condition on fitted forecasts and observed regimes, omit refitting
+uncertainty and are pointwise rather than simultaneous across all
+contrasts. Further ablations and transfer contrasts are exploratory.
+Failure to show a gain is not proof of equivalence.
 
 \section{Results}\label{results}
 
-\subsection{Nominal out-of-sample
-performance}\label{nominal-out-of-sample-performance}
+\subsection{Original cohort and incremental graph
+information}\label{original-cohort-and-incremental-graph-information}
 
-The three test folds contain 1,022 origins and 110 positives, a realised
-prevalence of 10.8\%. The primary thresholds and class balances vary
-materially by fold and version. V3 supplies 85 of the positive test
-origins. These differences make pooled ranking sensitive to calibration
-and to a model's ability to assign probabilities on a common scale
-across folds.
+The three original tests contain 1,022 cases and 110 positives.
+Persistence has the strongest pooled AP among the listed original
+predictors; the GRU has lower Brier loss than persistence. The temporal
+graph does not establish incremental value over the GRU or graph-summary
+tree comparison.
 
-\begin{longtable}[]{@{}lrrrr@{}}
-\caption{Nominal test results across the three folds. Higher AP and
-AUROC, lower Brier and log loss are preferable.}\tabularnewline
+\Needspace{10\baselineskip}
+\begin{longtable}[]{@{}llll@{}}
+\caption{Primary clean scores recomputed from the supplied ledger; AP
+higher and losses lower are preferable.}\tabularnewline
 \toprule\noalign{}
-Model & AP & AUROC & Brier & Log loss \\
+Model & AP & Brier & Log loss \\
 \midrule\noalign{}
 \endfirsthead
 \toprule\noalign{}
-Model & AP & AUROC & Brier & Log loss \\
+Model & AP & Brier & Log loss \\
 \midrule\noalign{}
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-Training prior & 0.1150 & 0.5099 & 0.0990 & 0.3645 \\
-Prior-day liquidation & 0.3127 & 0.7431 & 0.0918 & 0.3220 \\
-Local logit & 0.2373 & 0.7509 & 0.1038 & 0.3434 \\
-Market and local logit & 0.1627 & 0.6434 & 0.1447 & 0.5234 \\
-LightGBM & 0.2574 & 0.6934 & 0.0907 & 0.3264 \\
-LightGBM + graph summaries & 0.2200 & 0.7052 & 0.0926 & 0.3281 \\
-GRU + Platt & 0.2479 & 0.7270 & 0.0904 & 0.3129 \\
-Static graph + Platt & 0.2324 & 0.7085 & 0.0915 & 0.3176 \\
-Graph without market block & 0.2226 & 0.7380 & 0.0902 & 0.3100 \\
-Graph without sequence & 0.2442 & 0.7087 & 0.0906 & 0.3170 \\
-Graph, single seed & 0.1515 & 0.5864 & 0.0979 & 0.3718 \\
-Graph, raw ensemble & 0.1926 & 0.6200 & 0.0963 & 0.3643 \\
-Temporal graph + Platt & 0.1949 & 0.6422 & 0.0938 & 0.3318 \\
-Graph + isotonic & 0.1661 & 0.6738 & 0.0951 & 0.3551 \\
-Augmented graph + Platt & 0.2155 & 0.7064 & 0.0921 & 0.3186 \\
+Training prior & 0.1150 & 0.0990 & 0.3645 \\
+Prior-day liquidation & 0.3127 & 0.0918 & 0.3220 \\
+Local logit & 0.2373 & 0.1038 & 0.3434 \\
+LightGBM & 0.2574 & 0.0907 & 0.3264 \\
+LightGBM + graph summaries & 0.2200 & 0.0926 & 0.3281 \\
+Market + local GRU & 0.2479 & 0.0904 & 0.3129 \\
+Static graph & 0.2324 & 0.0915 & 0.3176 \\
+One-step graph & 0.2442 & 0.0906 & 0.3170 \\
+Graph without market & 0.2226 & 0.0902 & 0.3100 \\
+Graph raw & 0.1930 & 0.0962 & 0.3626 \\
+Temporal graph + Platt & 0.1954 & 0.0939 & 0.3319 \\
+Augmented graph & 0.2153 & 0.0921 & 0.3186 \\
 \end{longtable}
 
-The one-day liquidation persistence model has the highest pooled AP
-among the benchmarks, 0.3127. Relative to the temporal graph ensemble,
-the GRU improves both pooled AP and Brier score. For the graph minus GRU
-contrast, the AP difference is -0.0530 {[}-0.1459, 0.0159{]} and the
-Brier difference is 0.0034 {[}-0.0009, 0.0081{]}, with 14-day blocked
-percentile intervals. Both intervals cover zero. They allow meaningful
-negative differences in AP and small positive differences. The direction
-of the point estimates does not support a dependable incremental graph
-gain in this cohort. The seven- and 28-day block intervals lead to the
-same interpretation. LightGBM with local and market inputs also ranks
-ahead of its graph-summary variant by AP.
+\Needspace{10\baselineskip}
+\begin{longtable}[]{@{}ll@{}}
+\caption{Conditional paired 14-day block intervals, 2,000 replications.
+Positive loss differences favour GRU.}\tabularnewline
+\toprule\noalign{}
+Graph minus GRU & Estimate and 95\% interval \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Graph minus GRU & Estimate and 95\% interval \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+AP & -0.0525 {[}-0.1488, 0.0161{]} \\
+brier & 0.0034 {[}-0.0012, 0.0086{]} \\
+logloss & 0.0191 {[}0.0053, 0.0328{]} \\
+\end{longtable}
 
-\begin{longtable}[]{@{}lrrrr@{}}
-\caption{Primary paired comparison shown separately by test
+Graph/GRU AP and Brier intervals include zero, while graph log loss is
+worse in the conditional comparison. This pointwise result is not a
+universal statement about financial networks. The graph ranks ahead in
+A/B; the GRU leads in the largest fold C. Pooled AP reflects both
+within-fold ordering and cross-fold probability alignment.
+
+\Needspace{10\baselineskip}
+\begin{longtable}[]{@{}lllll@{}}
+\caption{Same source ledger, separated by original test
 fold.}\tabularnewline
 \toprule\noalign{}
 Fold & Graph AP & GRU AP & Graph Brier & GRU Brier \\
@@ -818,510 +683,580 @@ Fold & Graph AP & GRU AP & Graph Brier & GRU Brier \\
 \bottomrule\noalign{}
 \endlastfoot
 A & 0.2114 & 0.1670 & 0.1162 & 0.1162 \\
-B & 0.2889 & 0.2555 & 0.0669 & 0.0668 \\
-C & 0.1976 & 0.3115 & 0.0997 & 0.0924 \\
+B & 0.2924 & 0.2555 & 0.0670 & 0.0668 \\
+C & 0.1975 & 0.3115 & 0.0998 & 0.0924 \\
 \end{longtable}
 
-Fold differences qualify the pooled result. The temporal graph model
-ranks ahead of the GRU in folds A and B. In fold C the GRU performs
-substantially better on both primary scores. In version-stratified test
-results, the recurrent model outperforms the graph model on AP and Brier
-score for both V2 and V3. A monitoring team interested in cross-version
-comparisons should therefore inspect both cohort-level and
-version-specific outputs. This matters here because a forecast feature
-observed at the global protocol level can become a proxy for the
-relative scale of V2 and V3, without reliably ranking stress days within
-either version.
-
-The static graph, the market-free graph, and the graph with a one-step
-sequence all have higher pooled AP than the full temporal graph. Adding
-market variables to the graph ensemble gives an AP difference of -0.0277
-{[}-0.1178, 0.0304{]} relative to the same model without oracle inputs.
-The result is consistent with redundancy or distribution drift in this
-small panel, and the interval spans effects on both sides of zero. The
-market-aware GRU and LightGBM remain strong comparisons, so the ablation
-provides evidence about the selected graph-and-market fusion, rather
-than a general result that prices are uninformative. The simpler
-one-step configuration yields a lower Brier score than the full graph
-model, with a paired difference of 0.0032 {[}0.0011, 0.0048{]} for full
-minus one-step. It still sees engineered past volumes and market
-returns, so the result pertains to the recurrent history layer in this
-experiment.
-
-\subsection{Calibration and
-uncertainty}\label{calibration-and-uncertainty}
-
-Platt recalibration improves the graph ensemble's Brier score from
-0.0963 to 0.0938 and its log loss from 0.3643 to 0.3318. The paired
-Brier change is -0.0024 {[}-0.0047, -0.0003{]}. The raw mean already
-improves AP over the fixed single seed. ECE falls from 0.0500 to 0.0122
-under the equal-width bins. Mean forecast rises from 7.2\% to 10.6\%,
-close to the realised prevalence for the pooled sample. Isotonic
-regression yields a weaker log loss of 0.3551. This is consistent with a
-more flexible map overfitting thin calibration blocks. Some high-score
-bins contain very few events, so visual departures from the diagonal
-require consideration of the bin counts.
-
-\begin{figure}
+\begin{figure}[H]
 \centering
-\includegraphics[width=0.82\textwidth,height=\textheight]{figures/reliability.pdf}
-\caption{Reliability for four fitted models in pooled clean test data.
-Marker area grows with the square root of bin occupancy. The dashed line
-gives equality between mean predicted and observed frequencies.}
+\includegraphics[width=1\textwidth,height=0.33\textheight,keepaspectratio]{../revision/figures/primary_performance.pdf}
+\caption{Recomputed clean primary scores from one supplied forecast
+ledger. Both horizontal scales begin at zero.}
 \end{figure}
 
-Selective prediction gives a different assessment of the uncertainty
-signal. At 90.0\% retained coverage, the disagreement ranking has Brier
-score 0.0905 on 94 retained positive origins. Entropy gives Brier score
-0.0870 on 89 positive origins and random deferral has expected Brier
-score 0.0938. Lower retained loss partly reflects which events enter the
-review queue. The curve therefore describes conditional automation risk
-and cannot substitute for alert and review accounting.
+Static and one-step graph variants rank ahead of the full temporal graph
+in the pooled sample. Adding graph summaries to LightGBM lowers its AP
+point estimate. These observations constrain claims about the selected
+representation but do not distinguish uninformative links from redundant
+inputs, small sample size, weak peer attributes or scope mismatch. They
+do not answer the comparison with borrower Health Factor, which remains
+unavailable.
 
-\begin{figure}
-\centering
-\includegraphics[width=0.82\textwidth,height=\textheight]{figures/risk_coverage.pdf}
-\caption{Brier loss on retained cases for three deferral rankings. Graph
-probabilities are the same across the curves. The number of retained
-positive origins varies with the ranking.}
-\end{figure}
+\subsection{Calibration, masks and analyst
+workload}\label{calibration-masks-and-analyst-workload}
 
-\subsection{Delayed and incomplete
-observations}\label{delayed-and-incomplete-observations}
+The supplied raw and calibrated graph forecasts yield the following
+clean-score comparison.
 
-\begin{longtable}[]{@{}lrrrrr@{}}
-\caption{Input disruption under fixed calibration, with the augmented
-graph labelled Aug.}\tabularnewline
+\Needspace{10\baselineskip}
+\begin{longtable}[]{@{}llll@{}}
+\caption{Calibration uses earlier calibration blocks; it is frozen
+during testing.}\tabularnewline
 \toprule\noalign{}
-Observation & Graph AP & Graph Brier & Aug.~AP & Aug.~Brier & GRU AP \\
+Graph probability & AP & Brier & Log loss \\
 \midrule\noalign{}
 \endfirsthead
 \toprule\noalign{}
-Observation & Graph AP & Graph Brier & Aug.~AP & Aug.~Brier & GRU AP \\
+Graph probability & AP & Brier & Log loss \\
 \midrule\noalign{}
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-Clean & 0.1949 & 0.0938 & 0.2155 & 0.0921 & 0.2479 \\
-Thin 10\% & 0.2016 & 0.0937 & 0.2183 & 0.0920 & 0.2479 \\
-Thin 30\% & 0.2060 & 0.0937 & 0.2189 & 0.0919 & 0.2479 \\
-Thin 50\% & 0.2321 & 0.0936 & 0.2224 & 0.0918 & 0.2479 \\
-Oracle delay (+1 d) & 0.1853 & 0.0946 & 0.1919 & 0.0931 & 0.2033 \\
-Graph delay (+7 d) & 0.1467 & 0.0959 & 0.1496 & 0.0966 & 0.2479 \\
-Combined & 0.1339 & 0.0962 & 0.1436 & 0.0971 & 0.2033 \\
+Raw ensemble & 0.1930 & 0.0962 & 0.3626 \\
+Platt calibrated & 0.1954 & 0.0939 & 0.3319 \\
+Isotonic & 0.1617 & 0.0952 & 0.3562 \\
 \end{longtable}
 
-The unaugmented graph's 24-hour AP declines from 0.1949 in the clean
-regime to 0.1339 in the combined perturbation. A graph delay alone has a
-larger adverse effect on its pooled ranking than an oracle delay alone
-in this run. Removing links in isolation increases AP for the
-unaugmented graph at the three tested removal rates. A change in
-retained messages can incidentally attenuate inputs that were unhelpful
-during the test period. Since the three rates share nested masks, their
-movement is a sensitivity analysis on one controlled corruption draw,
-rather than a general claim that missing information helps.
-
-The augmented graph's AP is 0.2155 clean and 0.1436 in the combined
-regime. Relative to the unaugmented graph, it has a higher absolute AP
-under the combined case and a larger decline from its own clean
-baseline. For combined-case Brier score its paired difference is 0.0009
-{[}-0.0004, 0.0019{]}. This is mixed evidence for robustness. Training
-on thinned links and delayed oracle inputs did not remove the dependence
-on graph timeliness. Models without graph covariates are insensitive to
-edge thinning by construction. The GRU still loses AP with a one-day
-oracle delay, which identifies a distinct source of fragility. A record
-of the last successful update should accompany a deployed forecast
-independently of the model's ensemble spread.
-
-\begin{figure}
+\begin{figure}[H]
 \centering
-\includegraphics[width=1\textwidth,height=\textheight]{figures/edge_thinning.pdf}
-\caption{Pure edge thinning under fixed fits and calibration. Changes
-depend on one nested perturbation draw. The GRU and the market-only
-LightGBM never use links.}
+\includegraphics[width=0.78\textwidth,height=0.33\textheight,keepaspectratio]{../revision/figures/calibration_recomputed.pdf}
+\caption{Equal-width reliability bins from the same clean ledger. Marker
+area reflects occupancy; sparse upper bins remain uncertain.}
 \end{figure}
 
-\subsection{Warning burden and documented stress
-windows}\label{warning-burden-and-documented-stress-windows}
+Mean AP changes under thinning are slightly positive at each rate, but
+some masks worsen ranking. Probability error moves in the opposite
+direction: 99 of 100 masks at 50\% thinning worsen Brier loss. A
+favourable deterministic mask would therefore give an incomplete account
+of robustness.
 
+\Needspace{10\baselineskip}
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.4217}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.0964}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1325}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1325}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1084}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1084}}@{}}
-\caption{Nominal alert performance. Onsets hit counts automated warnings
-on the first positive origin of a run. Lead is the median among those
-onsets.}\tabularnewline
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}@{}}
+\caption{100 mask draws per rate. All changes are paired with the same
+fitted clean graph.}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
-Model and rule
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Alerts
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-False per week
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Onsets hit
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Reviews
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Lead (h)
+Removal
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Mean AP change
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+AP worse / 100
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Mean Brier change
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Brier worse / 100
 \end{minipage} \\
 \midrule\noalign{}
 \endfirsthead
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
-Model and rule
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Alerts
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-False per week
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Onsets hit
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Reviews
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Lead (h)
+Removal
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Mean AP change
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+AP worse / 100
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Mean Brier change
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Brier worse / 100
 \end{minipage} \\
 \midrule\noalign{}
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-Temporal graph + Platt & 189 & 2.08 & 16/70 & 0 & 9.97 \\
-Temporal graph + Platt with review & 36 & 0.36 & 6/70 & 245 & 9.83 \\
-GRU + Platt & 184 & 1.89 & 20/70 & 0 & 8.17 \\
-LightGBM & 195 & 2.00 & 19/70 & 0 & 8.97 \\
-Augmented graph + Platt & 184 & 1.90 & 20/70 & 0 & 7.03 \\
-Augmented graph + Platt with review & 48 & 0.44 & 8/70 & 213 & 4.27 \\
+10\% & +0.00216 & 27 & +0.000026 & 58 \\
+30\% & +0.00424 & 24 & +0.000157 & 87 \\
+50\% & +0.00346 & 36 & +0.000343 & 99 \\
 \end{longtable}
 
-Under the practically interpretable 10 per cent validation alert budget,
-the graph model produces 189 automated alerts in the test period. It
-catches 16 of 70 starts with median lead 9.97 hours among those it
-catches. The actual test alert rate is 18.5\%, demonstrating threshold
-drift. The review rule reduces automated false alerts from 152 to 26
-while decreasing automated onset detection from 16 to 6. It routes 245
-forecasts to review, including 24 episode onsets. Those numbers describe
-an allocation of analyst attention. They do not measure how many
-additional events a human analyst would identify. GRU and LightGBM
-require less architecture and catch more onsets with the
-probability-only policy. An application should evaluate review costs and
-the opportunity cost of a missed onset before using disagreement as a
-gate.
-
-The early August 2024 and February 2025 windows were selected using
-accounts independent of these scores (Aquilina et al. 2024; Chaos Labs
-2025). The sections below describe the forecast performance as the
-events unfolded. They are not additional training folds or evidence of
-shape invariance in new crises.
-
-\begin{longtable}[]{@{}llrrrr@{}}
-\caption{Externally dated stress windows. A hit is an automated
-probability-only alert on a positive day.}\tabularnewline
-\toprule\noalign{}
-Window & Version & USD m & Positive days & Graph hits & GRU hits \\
-\midrule\noalign{}
-\endfirsthead
-\toprule\noalign{}
-Window & Version & USD m & Positive days & Graph hits & GRU hits \\
-\midrule\noalign{}
-\endhead
-\bottomrule\noalign{}
-\endlastfoot
-2--8 Aug 2024 & V2 & 31.91 & 2 & 0 & 0 \\
-2--8 Aug 2024 & V3 & 252.34 & 4 & 4 & 4 \\
-2--5 Feb 2025 & V2 & 6.87 & 2 & 0 & 0 \\
-2--5 Feb 2025 & V3 & 178.45 & 3 & 0 & 2 \\
-\end{longtable}
-
-The early August V3 window totals about USD 252.3 million in the source
-record. Both recurrent approaches cross their alert thresholds on all
-four V3 positive days and on additional negative days in that window.
-For V2, neither detects the two positive days. In February 2025, the
-graph model issues no threshold alert in either version over the
-specified window. The GRU alerts on two of three V3 positive days. The
-contrasting episodes show why performance on one liquidation wave is
-insufficient evidence for a deployable model. An audit of the score
-levels in each window, the thresholds used, and the realised volume is
-available in the ledger. The proposal that activated V3 Core establishes
-that the Ethereum V3 panel cannot jointly cover Terra or FTX in 2022
-(Aave Governance 2023; Wu et al. 2025). Those episodes require a
-different cohort.
-
-\begin{figure}
+\begin{figure}[H]
 \centering
-\includegraphics[width=1\textwidth,height=\textheight]{figures/historical_windows.pdf}
-\caption{Held-out volume and predicted probabilities around the two
-documented episodes. Bar heights show source-reported USD volume and
-points show forecasts from the beginning of that UTC day. Volume axes
-have local scales.}
+\includegraphics[width=1\textwidth,height=0.33\textheight,keepaspectratio]{../revision/figures/mask_sensitivity.pdf}
+\caption{Mask variation conditional on fitted ensembles. Whiskers span
+empirical 2.5th-97.5th percentiles, not confidence intervals for future
+markets.}
 \end{figure}
 
-\Needspace{12\baselineskip}
+Original delayed-input scenarios and alternative horizons remain in the
+replication tables. They are covariate interventions on observed
+outcomes. Review additionally trades fewer automated false warnings
+against fewer automated onset detections and a large manual queue.
+Without an analyst experiment, reviewed cases cannot be counted as
+recovered events.
 
-\subsection{Label sensitivity and cross-version
-association}\label{label-sensitivity-and-cross-version-association}
+\Needspace{10\baselineskip}
+\begin{longtable}[]{@{}lllll@{}}
+\caption{Operational counts from the same supplied primary ledger.
+Reviews are not successful detections.}\tabularnewline
+\toprule\noalign{}
+Rule & Automated alerts & False alerts & Onsets hit & Reviews \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Rule & Automated alerts & False alerts & Onsets hit & Reviews \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Graph & 188 & 151 & 16/70 & 0 \\
+Graph + review & 36 & 25 & 6/70 & 241 \\
+GRU & 184 & 138 & 20/70 & 0 \\
+\end{longtable}
 
+\subsection{Fusion on C and a later chronological
+test}\label{fusion-on-c-and-a-later-chronological-test}
+
+The existing gate and nested selection have little ranking separation
+from the GRU on C. As fusion was developed after seeing the original
+benchmark, these C results support exploratory estimation only.
+
+\Needspace{10\baselineskip}
+\begin{longtable}[]{@{}llll@{}}
+\caption{Exploratory original C results, 472 forecasts and 53
+positives.}\tabularnewline
+\toprule\noalign{}
+C-only predictor & AP & Brier & Log loss \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+C-only predictor & AP & Brier & Log loss \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Graph & 0.1975 & 0.099751 & 0.351594 \\
+GRU & 0.3115 & 0.092422 & 0.312513 \\
+Fixed half & 0.3059 & 0.093687 & 0.321133 \\
+Disagreement heuristic & 0.3096 & 0.093002 & 0.317223 \\
+Original gate (penalty 10) & 0.3112 & 0.092402 & 0.313454 \\
+Nested selected gate & 0.3113 & 0.092263 & 0.313368 \\
+\end{longtable}
+
+The later test has 744 cases/40 positives (5.38\%). Its training q95
+thresholds are USD 691,427 for V2 and USD 2,716,455 for V3. These differ
+from original C, so prevalence changes are not statements about an
+unchanged physical stress boundary.
+
+\Needspace{10\baselineskip}
+\begin{longtable}[]{@{}llll@{}}
+\caption{Previously unscored later calendar, 744 forecasts and 40
+positives; no independent-source claim.}\tabularnewline
+\toprule\noalign{}
+Later predictor & AP & Brier & Log loss \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+Later predictor & AP & Brier & Log loss \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Graph & 0.307427 & 0.048868 & 0.191485 \\
+GRU & 0.324161 & 0.046263 & 0.171444 \\
+Fixed half & 0.330924 & 0.047430 & 0.179051 \\
+Disagreement heuristic & 0.324353 & 0.046305 & 0.171762 \\
+Learned gate & 0.322987 & 0.046439 & 0.172463 \\
+Expiry + heuristic & 0.324193 & 0.046262 & 0.171428 \\
+\end{longtable}
+
+\Needspace{10\baselineskip}
 \begin{longtable}[]{@{}
-  >{\raggedright\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.3544}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1519}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1139}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1139}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1392}}
-  >{\raggedleft\arraybackslash}p{(\columnwidth - 10\tabcolsep) * \real{0.1266}}@{}}
-\caption{Models refitted to each sensitivity definition. Compare models
-within rows because the event rate changes with the
-target.}\tabularnewline
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\caption{Paired 14-day intervals conditional on the later fitted
+forecasts. Small magnitudes are retained.}\tabularnewline
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
-Label and horizon
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Test + / \(n\)
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Graph AP
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-GRU AP
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Graph Brier
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-GRU Brier
+Minus GRU
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+AP difference {[}95\%{]}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Brier difference {[}95\%{]}
 \end{minipage} \\
 \midrule\noalign{}
 \endfirsthead
 \toprule\noalign{}
 \begin{minipage}[b]{\linewidth}\raggedright
-Label and horizon
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Test + / \(n\)
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Graph AP
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-GRU AP
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-Graph Brier
-\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedleft
-GRU Brier
+Minus GRU
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+AP difference {[}95\%{]}
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Brier difference {[}95\%{]}
 \end{minipage} \\
 \midrule\noalign{}
 \endhead
 \bottomrule\noalign{}
 \endlastfoot
-USD, 24 hours & 110/1022 & 0.1949 & 0.2479 & 0.0938 & 0.0904 \\
-USD, 6 hours & 91/1022 & 0.1053 & 0.1203 & 0.0810 & 0.0808 \\
-USD, 7 days & 164/986 & 0.2571 & 0.4041 & 0.1285 & 0.1267 \\
-Borrowing ratio, 24 hours & 94/1022 & 0.0977 & 0.1162 & 0.0866 &
-0.0854 \\
+Graph & -0.0167 {[}-0.0752, 0.0754{]} & 0.002605 {[}0.000900,
+0.004972{]} \\
+Fixed half & 0.0068 {[}-0.0170, 0.0660{]} & 0.001167 {[}0.000334,
+0.002317{]} \\
+Disagreement heuristic & 0.0002 {[}-0.0030, 0.0038{]} & 0.000042
+{[}0.000005, 0.000086{]} \\
+Learned gate & -0.0012 {[}-0.0155, 0.0088{]} & 0.000177 {[}0.000030,
+0.000377{]} \\
+Expiry + heuristic & 0.0000 {[}-0.0001, 0.0007{]} & -0.000001
+{[}-0.000010, 0.000000{]} \\
 \end{longtable}
 
-The main result survives the three changes to the target in the
-following sense. The temporal graph does not exceed the corresponding
-non-graph GRU's pooled AP or Brier score in any of them. Relative
-ordering among tabular and recurrent approaches changes with the horizon
-and denominator. In the seven-day sensitivity, the V2 test portion of
-fold C has no positives. The fold's neural tuning block also has no
-positives when both versions are pooled. Using Bernoulli log loss allows
-evaluation of that tuning block without undefined class-specific
-metrics. The observed seven-day event rate across all folds is markedly
-different from the 24-hour rate. Absolute AP and Brier scores should
-consequently be compared across models within, rather than across,
-target definitions.
+The later learned gate has AP 0.3230 versus GRU 0.3242, with a positive
+Brier difference. A 50/50 mixture improves the AP point estimate but
+worsens Brier/log loss; its AP interval spans zero. Marginal ranking
+movement does not establish better probability quality. The
+freshness-capped heuristic is almost identical to the GRU because it
+ignores the graph for most of this stale-feed regime. Near-equality is
+evidence of fallback behaviour, not a new source of predictive
+information.
 
-The pinned graph yields no positive retained direct link between Aave V2
-and Aave V3 in either orientation in the buffered panel. Hence the
-incoming-share and weighted lag columns are identically zero. The
-weighted and unweighted models return identical forecasts, and the
-required exposure contrast is unidentifiable in this labelled sample.
-The ledger still supports an unweighted association comparison. Adding
-the other version's one-day realised volume to ridge logit gives a minor
-improvement in Brier score (-0.0013 {[}-0.0020, -0.0005{]}) and an AP
-change of 0.0002 {[}-0.0025, 0.0024{]}. Co-movement under common
-collateral prices or common borrowers can explain association between
-version series. Resolving contagion would require outcome coverage for
-positively linked neighbours, a mechanism connecting their exposures at
-the deployable level, and evidence that distinguishes transmission from
-common shocks.
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth,height=0.33\textheight,keepaspectratio]{../revision/figures/later_holdout_history.pdf}
+\caption{Later forecasts and measured graph age. Weekly means aid
+display only; scores use unsmoothed daily version-level predictions.}
+\end{figure}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth,height=0.33\textheight,keepaspectratio]{../revision/figures/later_holdout_differences.pdf}
+\caption{Later paired differences from GRU, using 2,000 14-day
+moving-block draws with both versions clustered by date.}
+\end{figure}
+
+The experiment tests a frozen gate with renewed expert fits and a
+changing age distribution. It cannot isolate age causally from evolving
+market regimes. It nevertheless directly challenges the idea that
+disagreement alone makes fusion robust to obsolete network observations.
+Source freshness is independently observable and should accompany a
+learned uncertainty measure.
+
+\subsection{Conditional Compound
+transfer}\label{conditional-compound-transfer}
+
+Frozen-source predictions were actually generated. Both Compound
+versions have 196 valid test days, with 12 V2/19 V3 positives. Ranking
+transfer is weak, especially for the graph. On V3 both source models
+rank below target-supervised references, while probability-loss
+differences are smaller. On V2 a source model can have lower Brier error
+despite weaker ranking, illustrating separate effects of base-rate
+alignment and ordering.
+
+\Needspace{10\baselineskip}
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 8\tabcolsep) * \real{0.2000}}@{}}
+\caption{Conditional publisher-cohort transfer, 196 days per version.
+Target-history q95 scaling is declared.}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Target / model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Frozen-source AP
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Target-fit AP
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Source Brier
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Target Brier
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Target / model
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Frozen-source AP
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Target-fit AP
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Source Brier
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Target Brier
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+V2 GRU & 0.0677 & 0.1500 & 0.0639 & 0.0689 \\
+V2 Graph & 0.0604 & 0.1063 & 0.0711 & 0.0937 \\
+V3 GRU & 0.1109 & 0.1982 & 0.0899 & 0.0885 \\
+V3 Graph & 0.0921 & 0.1972 & 0.0940 & 0.0929 \\
+\end{longtable}
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=1\textwidth,height=0.33\textheight,keepaspectratio]{../revision/figures/transfer_performance.pdf}
+\caption{Executed transfer scores. Dashed lines give target test
+prevalence as an uninformative-ranking reference. Missing crisis
+neighbourhoods are excluded.}
+\end{figure}
+
+On V3, source-minus-target AP differences are -0.0873 for GRU and
+-0.1051 for graph, with conditional intervals {[}-0.1758, -0.0239{]} and
+{[}-0.1929, -0.0316{]}. These exploratory results show that transfer was
+executed and failed to match supervised ranking in the filtered cohort.
+They do not establish chain-validated external performance, a
+crisis-inclusive benchmark or coverage of every Compound deployment.
+
+\section{Historical account health and independent
+validation}\label{historical-account-health-and-independent-validation}
+
+\subsection{Health Factor remains a missing
+benchmark}\label{health-factor-remains-a-missing-benchmark}
+
+For a basic position, the conceptual Health Factor is
+\[\mathrm{HF}_{u,t}=\frac{\sum_a C_{u,a,t}P_{a,t}\mathrm{LT}_{a,t}}{\sum_a D_{u,a,t}P_{a,t}}.\]
+Contract values additionally depend on units, integer rounding,
+eligibility and historical implementation rules. Official Aave
+interfaces expose account data, and its logic includes version/eMode
+behaviour (Aave 2026, 2025). Reserve utilisation and governance
+thresholds are not account HF. Liquidated-account samples are not
+representative borrower cross-sections.
+
+The supplied Cred sample has 75 observations from January 2021-June 2022
+and zero overlap with the primary interval (Cred Protocol n.d.). Its
+aggregate collateral/debt arithmetic reproduces supplied HF values,
+which is an algebraic identity within one dataset, not chain-state
+validation or a contemporary risk panel.
+
+Delivered reconstruction code reads token balances, prices, collateral
+flags and configuration at an exact block, applies supported basic
+legacy integer rules and compares against \texttt{getUserAccountData}.
+Debt-free HF is undefined; unsupported eMode/ABI cases fail explicitly.
+Ten training-era account/block requests are included for mechanics
+checks. No real historical HF output was generated because archive calls
+were denied. Software tests are not represented as empirical validation.
+
+\subsection{The required incremental-information
+comparison}\label{the-required-incremental-information-comparison}
+
+A suitable panel must enumerate borrowers as known at each origin, not
+select future liquidation recipients. At a block strictly before
+midnight it should measure debt-weighted HF shares, buffer distributions
+and coverage. For example,
+\[S_t(\tau)=\frac{\sum_u D_{u,t}\mathbb{1}\{\mathrm{HF}_{u,t}<\tau\}}{\sum_u D_{u,t}}\]
+requires a documented borrower denominator. The next comparison must
+hold cohort, target, dates and calibration fixed across local/market,
+local/market/HF and local/market/HF/graph models. This ablation has not
+run. Current findings concern network value relative to the available
+local inputs, not the best obtainable loan-health information.
+
+\subsection{Compound semantics and
+access}\label{compound-semantics-and-access}
+
+Compound V2 emits \texttt{LiquidateBorrow}; Compound III uses absorption
+and later collateral-sale mechanics (Compound 2026b, 2026a). Its
+\texttt{AbsorbDebt} event contains \texttt{basePaidOut} and
+\texttt{usdValue} (Compound Finance 2026). We retain the emitted
+valuation without automatically renaming it borrower principal or seized
+collateral. Reconciliation must specify which quantity a published daily
+column measures, deployment coverage and UTC boundaries. V2 repayment
+and seized collateral also need separate historical valuation paths.
+
+Network identity and a historical block header were obtainable.
+Historical state/log requests returned HTTP 403 on the tested routes,
+and no authenticated archive endpoint was configured. Access reports
+distinguish failure from an empty history. The supplied read-only
+collector checks continuous block coverage, event uniqueness,
+removed-log flags and block hashes and can compare a second endpoint. It
+covers a specified Ethereum Compound III USDC deployment, not complete
+V2/V3 reconciliation, and has no claimed executed validation result.
 
 \section{Discussion}\label{discussion}
 
-\subsection{What the network test can
-establish}\label{what-the-network-test-can-establish}
+\subsection{Interpreting the negative
+evidence}\label{interpreting-the-negative-evidence}
 
-In the present data, liquidation activity itself is a stronger ranking
-signal than the chosen weekly graph representation. Persistence can
-perform well when stress accumulates across consecutive days. Onset
-recall provides a harder diagnostic because a model cannot take credit
-for recognising a continuation as the beginning of an episode. The graph
-and GRU results differ across time even though the same release,
-thresholds and splits were used. In particular, the positive graph
-contribution in two individual folds is followed by a reversal in the
-largest test fold. A daily forecast primarily driven by price changes
-and recent liquidations may have little to gain from topology that
-updates on a weekly schedule. Common market covariates can also absorb
-variation that the graph encodes through mark-to-market weights.
+The original and later tests constrain a practical claim: this network
+representation and disagreement gate do not establish a stable advantage
+over timely local/market forecasting. The evidence includes exact score
+recomputation, a full primary refit, multiple corruption masks and a
+previously unscored calendar. It is weaker than a universal assertion
+that financial networks are uninformative. Only two source-labelled Aave
+series, one graph construction and a small family of encoders are
+tested.
 
-Three alternatives remain plausible. A matched Ethereum graph may expose
-differences that the global version labels blur. A position- or
-reserve-level graph can encode which collateral and debt assets are
-connected within the lending book. A cross-protocol panel with events at
-linked neighbours can make propagation estimable in a way that the zero
-direct version link cannot. Each would change the available information
-and require validation of address-level joins and real release times.
-Increasing model capacity alone does not resolve those data problems.
-Comparing future encoders to recent liquidation history, reserve state
-and a thin market model would preserve the strongest empirical controls
-identified here.
+Local liquidation history may already encode pressure associated with
+exposure links. Weekly global measurements may be too coarse for
+next-day account events. Peer attributes describe scale/exposure rather
+than independently labelled distress. Additional complexity competes
+with few independent stress episodes. Global graph coverage and Ethereum
+outcomes are imperfectly aligned. The present design cannot identify the
+relative contribution of these explanations, and absent HF controls
+prevent a stronger conditional-information claim.
 
-The graph's initial appeal for systemic monitoring lies in shared
-holdings and composability. The test establishes that the existing
-public graph, at its available cadence and chosen mapping, is an
-imperfect proxy for realised local distress. A forecaster can enter a
-regime with stale exposure weights and see a large score change even if
-its own day-to-day local inputs arrive on time. Explicit data ages and
-precise source coverage are part of model validation in this setting.
+Thinning separates sensitivity from economic information. Removing links
+can attenuate unhelpful messages and improve some ranks while worsening
+probability magnitude. This does not mean data loss is intrinsically
+protective. It argues for reporting distributions across specified masks
+and calibration diagnostics under the same frozen forecast rule.
 
-\subsection{The warning interface and adaptive
-governance}\label{the-warning-interface-and-adaptive-governance}
+\subsection{Reliability needs source
+metadata}\label{reliability-needs-source-metadata}
 
-A risk-governance system needs to know both what the forecaster has
-observed and how a warning should be handled. A practical record
-contains the forecast origin and horizon, estimated probability,
-validation-based uncertainty rank, current source ages and the rule that
-generated the status. A portfolio of rules can reserve automated alerts
-for high scores, route uncertain high-risk situations for manual
-investigation, and log missing data explicitly. This study supplies a
-retrospective comparison of those routing choices. In the nominal graph
-results, a review-first rule transfers several prospective onsets from
-automation into a queue. Whether that transfer is acceptable depends on
-response time and analyst review capacity.
+Ensemble disagreement is not a certificate of input validity. Members
+can agree on stale or mismeasured data. The later window deliberately
+exposes this problem. Its expiry comparator mostly reproduces local
+forecasts: a conservative behaviour, not a demonstrated network gain.
+Monitoring should display age, coverage and supported-regime flags
+alongside probabilities. Governance policies also need intervention
+costs and financial consequences, which forecast scores alone cannot
+establish.
 
-The connection to adaptive governance is to test decisions using an
-information set that can be wrong or delayed. The probability model
-supplies observations to a decision policy. The design of the policy
-then determines admissible actions, oversight and safety constraints. A
-future governance study could compare intervention strategies
-conditioned on calibrated, lagged and reviewed forecast streams while
-measuring downstream impacts on borrower and lender outcomes. It would
-need a separate causal or structural model to estimate the effects of
-changing collateral parameters, borrowing caps or price-input
-safeguards. Those effects cannot be read off predictive AP or a directed
-aggregate TVL edge.
+The companion local-currency adaptive-governance repository concerns
+policy responses to delayed observations. It is a separate modelling
+project, not independent empirical evidence for these forecasts. Neither
+predictive differences nor directed aggregate exposures alone justify an
+assertion of causal contagion or a welfare-improving parameter
+intervention.
 
-\subsection{Limitations and validation
-needed}\label{limitations-and-validation-needed}
+\subsection{Selection and measurement}\label{selection-and-measurement}
 
-The analysis covers two version series in one chain and one protocol
-family. Many neighbours enter the graph as covariates and have no
-independently measured liquidation outcome in this experiment. The
-resulting sample contains roughly 17 months of scored decisions, with
-concentrated regime changes and an unbalanced distribution of positives.
-An extension to independent protocols or chains will need to audit
-differences in liquidation rules, asset decimals, USD valuation and pool
-coverage. The event-indexer parity check verifies internal alignment
-rather than completeness against chain logs. A subset of directly
-indexed and independently valued events would strengthen the data
-validation.
+Transfer is a real procedure with saved weights, but deleting a crisis
+day is particularly damaging to a tail estimand. The 196-day cohort is
+explicit about eligibility yet remains selected by publisher filtering.
+It must not be advertised as a fully validated cross-protocol warning
+system. Matching published Aave series can establish compatibility while
+leaving common upstream dependencies unresolved. Independent
+verification requires event identities and a declared valuation map, not
+high correlation alone.
 
-A weekly TVL graph can approximate positions and dependencies only to
-the extent that its timestamp, mapping and valuation distinguish them.
-Global pooling makes it an imperfect exposure measure for an
-Ethereum-only target. The data are reconstructed retrospectively, and
-reporting lags are explicitly assumed. Archived vintages would permit a
-stronger point-in-time replay. The scenario grid tests one family of
-missing-edge masks and two specified input delays. Different outage
-mechanisms, including structured source-level gaps and price
-corrections, merit separate external validation. The 1,000 bootstrap
-replicates do not increase the number of actual stress episodes. Small
-historical windows, flexible calibrators and alert-threshold drift
-should be interpreted in that context.
+HF reconstruction has an analogous boundary: an equation is insufficient
+when balances accrue interest, collateral eligibility changes and
+protocol implementations evolve. Unsupported components must remain
+missing rather than become reassuring zeros. Selected-account checks can
+validate mechanics but cannot supply a representative risk distribution
+without an enumerated borrower universe.
 
-Tail volume is an observable monitoring objective with a testable timing
-rule. A training quantile adapts to market size and past activity, at
-the cost of redefining the threshold between folds. The
-borrowing-normalised sensitivity uses a broader active-borrowing series
-and mutable API values, explicitly documented in the manifest.
-Mechanism-based forecasts would benefit from aggregate account health
-factors and a pool-matched debt inventory. Those variables could improve
-forecasting and establish closer correspondence between the label and
-positions at financial risk.
+\subsection{Statistical and submission
+limits}\label{statistical-and-submission-limits}
+
+Effective information is closer to independent stress episodes than
+total version-days. Moving blocks preserve local clustering but cannot
+guarantee coverage under future regimes. The later window has only 40
+positives and an increasingly obsolete graph. AP depends on prevalence;
+thresholds differ across cohorts. All source-quality decisions and model
+fits are retained, but no independent preregistration is claimed.
+
+Independent Compound reconciliation and a representative validated HF
+comparison remain material evidence gaps. A claim of network value
+beyond loan health cannot be made without the latter. This is a revised
+research manuscript for scientific review, with completed and blocked
+tasks separated below. Journal quartile and acceptance are not inferred
+from architecture complexity or document formatting.
 
 \section{Conclusion}\label{conclusion}
 
-In two Ethereum Aave version series, a lagged temporal graph does not
-convey dependable incremental information for forecasting next-day tail
-liquidation volume under this evaluation. Prior volume provides a strong
-ranking baseline, and a recurrent model using market and local inputs
-scores better on the pooled graph comparison. Platt calibration
-materially reduces probability loss within the graph ensemble. A
-disagreement gate reduces automated false alerts while moving many
-potential warnings into manual review. The combined-delay experiment and
-two historical windows show why calibration and the attention budget
-need explicit validation before a score informs governance. The public
-package specifies how to reconstruct the dataset, run the chronological
-tests and recompute the reported metrics.
+The selected temporal graph and reliability gate do not demonstrate
+stable improvement over local/market alternatives across the original
+Aave study and a later chronological window. Prior liquidation is a
+strong ranking comparator; calibration affects probability error;
+missing-link ranking changes can diverge from probability quality.
+Executed source-weight transfer is weak and conditional on important
+calendar/measurement assumptions. The package preserves negative
+results, distinct runs and unfinished validation. Additional network
+value relative to historical borrower health remains an empirical
+question.
 
-\section{Data and code availability}\label{data-and-code-availability}
+\section{Reproducibility and evidence
+status}\label{reproducibility-and-evidence-status}
 
-The data manifest records the pinned Zenodo DOI, DeXposure commit and
-content hashes, and the metadata of the DefiLlama sensitivity inputs.
-The repository contains the timestamped analysis plan, model source,
-tests, fold logs, forecast ledgers, metrics and figures. Aggregates use
-the data sources and licences cited above. The replication entry points
-are documented at
-\href{https://github.com/nikorokni/defi-systemic-risk}{github.com/nikorokni/defi-systemic-risk}.
-The full weekly graph and upstream event archives are downloaded from
-their original repositories.
+\Needspace{10\baselineskip}
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}
+  >{\raggedright\arraybackslash}p{(\columnwidth - 4\tabcolsep) * \real{0.3333}}@{}}
+\caption{Completed analyses and unresolved scientific requirements at
+this revision.}\tabularnewline
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Analysis
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Status
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Interpretive boundary
+\end{minipage} \\
+\midrule\noalign{}
+\endfirsthead
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\raggedright
+Analysis
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Status
+\end{minipage} & \begin{minipage}[b]{\linewidth}\raggedright
+Interpretive boundary
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Original metric audit & Executed & 47 rows recomputed; no independent
+chain claim \\
+Primary model refit & Executed & Software-sensitive outputs kept
+separate \\
+100-mask analysis & Executed & Conditional on fitted ensembles \\
+Later fusion test & Executed & New calendar, same source, stale graph \\
+Aave-to-Compound transfer & Executed conditionally & Filtered daily
+source; UTC/valuation assumptions \\
+Compound raw-log reconciliation & Blocked & Historical log access
+denied \\
+Representative historical HF & Not completed & Selected old sample is
+insufficient \\
+Network beyond HF comparison & Not executed & Requires validated
+borrower-health panel \\
+\end{longtable}
 
-\section{Appendix. Reproducibility and author
-review}\label{appendix.-reproducibility-and-author-review}
+The package contains forecast ledgers, original sensitivity outputs,
+source hashes, transfer/later-window weights, scaling/calibration
+metadata, specifications, code and tests. Large upstream archives are
+downloaded from cited sources; small derived panels/graphs accompany the
+review package. Credentials are read from environment variables and
+excluded from the repository. Original and refitted primary ledgers stay
+separate. Tables are generated directly from score files.
 
-Exact data checks, source URLs, software versions and seed-specific
-stopping epochs appear in the repository's audit records. The Aave and
-oracle packages are immutable versioned archives, and the DeXposure
-graph is verified against its Git LFS SHA-256. The DefiLlama endpoints
-return revised and extended histories over time. This affects the
-borrowing-normalised sensitivity. The main experiment and the unscaled
-horizons depend on the pinned source archives for their labels and
-predictors.
+The authors must confirm final authorship, affiliations,
+funding/competing-interest statements and the selected journal's
+disclosure requirements before submission. No external journal
+submission is performed by this revision.
 
-This is a research draft for author verification and revision. OpenAI
-ChatGPT (Codex) assisted with source assessment, implementation, data
-analysis and drafting. The model and score calculations are specified in
-the Methods and can be replayed from the supplied code. The submitting
-authors should state the role of the tool following their completed
-review and the publisher's current policy, and confirm their individual
-contributions and declarations.
+\newpage
+
+\section{References}\label{references}
 
 \section*{References}\label{bibliography}
 \addcontentsline{toc}{section}{References}
 
 \phantomsection\label{refs}
 \begin{CSLReferences}{1}{0}
-\bibitem[\citeproctext]{ref-aave2023}
-Aave Governance. 2023. {`{Aave Ethereum V3}: Proposal 147'}. Governance
-proposal executed 27 January 2023.
-\url{https://governance-v2.aave.com/governance/proposal/147/}.
+\bibitem[\citeproctext]{ref-aavelogic}
+Aave. 2025. {`Aave V3 Core: GenericLogic.sol'}.
+\url{https://github.com/aave/aave-v3-core/blob/master/contracts/protocol/libraries/logic/GenericLogic.sol}.
 
-\bibitem[\citeproctext]{ref-aquilina2024}
-Aquilina, Matteo, Marco Jacopo Lombardi, Andreas Schrimpf, and Vladyslav
-Sushko. 2024. {`The Market Turbulence and Carry Trade Unwind of August
-2024'}. BIS Bulletin 90. Bank for International Settlements.
-\url{https://www.bis.org/publications/bulletin-90-market-turbulence-and-carry-trade-unwind-august-2024}.
-
-\bibitem[\citeproctext]{ref-barbon2026}
-Barbon, Andrea, Jean Barthélemy, and Benoît Nguyen. 2026. {`{DeFi}-Ying
-the Fed? Monetary Policy Transmission to Stablecoin Deposit Rates'}.
-Working Paper 1069. Banque de France.
-\url{https://www.banque-france.fr/en/publications-and-statistics/publications/defi-ying-fed-monetary-policy-transmission-stablecoin-deposit-rates}.
+\bibitem[\citeproctext]{ref-aavepool}
+---------. 2026. {`Aave V3 Pool Contract: getUserAccountData'}.
+\url{https://aave.com/docs/aave-v3/smart-contracts/pool}.
 
 \bibitem[\citeproctext]{ref-chaffard2026}
 Chaffard, Owen. 2026. {`Stablecoin {DeFi} Hourly Dataset, 2026-11-15'}.
 Zenodo, version v192. \url{https://doi.org/10.5281/zenodo.24245638}.
-
-\bibitem[\citeproctext]{ref-chaos2025}
-Chaos Labs. 2025. {`Risk Report on the 3 February 2025 Market Events'}.
-Aave Governance Forum, posted 4 February 2025 UTC.
-\url{https://governance.aave.com/t/chaos-labs-risk-report-insights-from-recent-market-events-02-03-25/20919}.
 
 \bibitem[\citeproctext]{ref-chiu2026}
 Chiu, Jonathan, and Furkan Danisman. 2026. {`{DeFi} Lending: Returns,
@@ -1336,15 +1271,23 @@ Machine Translation'}. In \emph{Proceedings of the 2014 Conference on
 Empirical Methods in Natural Language Processing}, 1724--34.
 \url{https://doi.org/10.3115/v1/D14-1179}.
 
-\bibitem[\citeproctext]{ref-defillama}
-DefiLlama. 2026. {`Free {API} Documentation and {TVL} Definitions'}.
-Documentation, accessed 16 November 2026.
-\url{https://github.com/DefiLlama/api-docs/blob/main/llms-free.txt}.
+\bibitem[\citeproctext]{ref-compoundv3}
+Compound. 2026a. {`Compound III Documentation: Liquidation'}.
+\url{https://docs.compound.finance/liquidation/}.
 
-\bibitem[\citeproctext]{ref-fan2025}
-Fan, Junyi, and Li Sun. 2025. {`A Cross-Chain Event-Driven Data
-Infrastructure for {Aave} Protocol Analytics and Applications'}. arXiv
-preprint 2512.11363. \url{https://doi.org/10.48550/arXiv.2512.11363}.
+\bibitem[\citeproctext]{ref-compoundv2}
+---------. 2026b. {`Compound V2 Documentation: cTokens and Liquidation
+Events'}. \url{https://docs.compound.finance/v2/ctokens/}.
+
+\bibitem[\citeproctext]{ref-cometcode}
+Compound Finance. 2026. {`Comet: Main Interface, Absorption Logic and
+Ethereum USDC Deployment'}.
+\url{https://github.com/compound-finance/comet/tree/f766f51583c23acc33b2a7824654ef2029a96804}.
+
+\bibitem[\citeproctext]{ref-credhf}
+Cred Protocol. n.d. {`Aave V2 Health Factor Dataset'}. Accessed 17
+November 2026.
+\url{https://github.com/credprotocol/Aave-V2-Health-Factor-Dataset}.
 
 \bibitem[\citeproctext]{ref-geifman2017}
 Geifman, Yonatan, and Ran El-Yaniv. 2017. {`Selective Classification for
@@ -1369,6 +1312,12 @@ Hamilton, William L., Rex Ying, and Jure Leskovec. 2017. {`Inductive
 Representation Learning on Large Graphs'}. In \emph{Advances in Neural
 Information Processing Systems}. Vol. 30.
 \url{https://arxiv.org/abs/1706.02216}.
+
+\bibitem[\citeproctext]{ref-iftikhar2025}
+Iftikhar, Erum, Wei Wei, and John Cartlidge. 2025. {`Automated Risk
+Management Mechanisms in {DeFi} Lending Protocols: A Crosschain
+Comparative Analysis of Aave and Compound'}. arXiv preprint 2506.12855.
+\url{https://doi.org/10.48550/arXiv.2506.12855}.
 
 \bibitem[\citeproctext]{ref-ke2017}
 Ke, Guolin, Qi Meng, Thomas Finley, Taifeng Wang, Wei Chen, Weidong Ma,
